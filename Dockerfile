@@ -2,6 +2,14 @@
 FROM node:20.11-slim AS deps
 WORKDIR /app
 
+# 네이티브 모듈 빌드를 위한 필수 패키지 설치
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # pnpm 설치 및 설정
 RUN corepack enable && corepack prepare pnpm@8 --activate
 
@@ -10,7 +18,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # 의존성 설치 (재시도 및 타임아웃 설정)
 RUN pnpm config set network-timeout 300000 && \
-    pnpm install --frozen-lockfile --no-optional
+    pnpm install --frozen-lockfile
 
 # Builder stage
 FROM node:20.11-slim AS builder
