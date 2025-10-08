@@ -10,6 +10,10 @@ import { extractMediaCreatedDate } from "@/utils/media-metadata";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
+// API Route가 Node.js Runtime을 사용하도록 명시 (heic-convert, sharp 사용)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /** 한번에 업로드 가능한 최대 파일 개수 */
 const MAX_FILES_PER_REQUEST = 10;
 
