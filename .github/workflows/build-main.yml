@@ -107,21 +107,20 @@ jobs:
           push: true
           tags: ${{ vars.GHCR }}:dev
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
 
   deploy:
     name: Deploy to Server
     needs: docker-build
     runs-on: [self-hosted]
+    environment: SERVER_HOST
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_USERNAME }}
           port: 30022
-          key: ${{ secrets.SERVER_KEY }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           envs: GITHUB_SHA
           script: |
             CONTAINER_NAME="${{ env.CONTAINER_NAME }}"
