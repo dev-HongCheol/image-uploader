@@ -57,7 +57,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ vars.GHCR }}:dev
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
@@ -74,7 +76,7 @@ jobs:
           envs: GITHUB_SHA
           script: |
             CONTAINER_NAME="${{ env.CONTAINER_NAME }}"
-            IMAGE="${{ vars.GHCR }}:dev"
+            IMAGE="ghcr.io/${{ github.repository }}:${{ github.ref_name }}"
 
             echo "🔄 Stopping existing container..."
             docker stop $CONTAINER_NAME || true
