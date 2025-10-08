@@ -1,12 +1,14 @@
+import { DEFAULT_PAGE_SIZE } from "@/constants/common";
 import { Folder, UploadedFileInfo } from "@/types/database";
 import {
   findFolderByPath,
-  getFolders,
   getFolderFiles,
+  getFolders,
   getOrCreateUserRoot,
 } from "@/utils/folder-system";
 import { createClient } from "@/utils/supabase/server";
 import ContentList from "./_components/conentList/ContentList";
+import { ContentResponse } from "@/lib/api/content-api";
 
 type Props = {
   searchParams: { path: string };
@@ -39,9 +41,10 @@ export default async function MainPage({ searchParams }: Props) {
     [folders, files] = await Promise.all([
       getFolders(rootFolder.id, loginUser.data.user.id),
       getFolderFiles(rootFolder.id, loginUser.data.user.id, {
-        limit: 50,
+        limit: DEFAULT_PAGE_SIZE,
         sortBy: "created_at",
         sortOrder: "desc",
+        offset: 0,
       }),
     ]);
   } else {
@@ -58,7 +61,7 @@ export default async function MainPage({ searchParams }: Props) {
       [folders, files] = await Promise.all([
         getFolders(foundFolderId, loginUser.data.user.id),
         getFolderFiles(foundFolderId, loginUser.data.user.id, {
-          limit: 50,
+          limit: DEFAULT_PAGE_SIZE,
           sortBy: "created_at",
           sortOrder: "desc",
         }),
@@ -67,7 +70,7 @@ export default async function MainPage({ searchParams }: Props) {
   }
 
   // 초기 데이터 준비
-  const initialData = {
+  const initialData: ContentResponse = {
     folders: folders || [],
     files: files || [],
     currentPath,

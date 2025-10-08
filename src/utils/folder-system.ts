@@ -7,7 +7,11 @@
  * - 파일 이동: 실제 파일은 그대로, DB의 folder_id만 변경
  */
 
-import { BUCKET_NAMES, ROOT_FOLDER_NAME } from "@/constants/common";
+import {
+  BUCKET_NAMES,
+  ROOT_FOLDER_NAME,
+  DEFAULT_PAGE_SIZE,
+} from "@/constants/common";
 import type {
   Folder,
   FolderInsert,
@@ -569,7 +573,7 @@ export async function getUserFolderTree(
 
 /**
  * 특정 폴더의 하위 폴더 목록을 조회하는 함수
- * 
+ *
  * @param folderId - 부모 폴더 ID
  * @param userId - 사용자 ID
  * @returns 하위 폴더 목록
@@ -611,7 +615,7 @@ export async function getFolderFiles(
     fileType?: "image" | "video" | "document" | "other";
     limit?: number;
     offset?: number;
-    sortBy?: "created_at" | "name" | "size" | "media_created_at";
+    sortBy?: "created_at" | "name" | "size";
     sortOrder?: "asc" | "desc";
   } = {},
 ): Promise<UploadedFileInfo[]> {
@@ -630,29 +634,16 @@ export async function getFolderFiles(
   }
 
   // 정렬 적용
-  const sortBy = options.sortBy || "media_created_at";
+  const sortBy = options.sortBy || "created_at";
   const sortOrder = options.sortOrder || "desc";
-
-  // media_created_at 정렬 시 NULL 값 처리
-  if (sortBy === "media_created_at") {
-    // media_created_at 기준 정렬 (NULL 값은 뒤로, 최신순)
-    query = query.order(sortBy, { ascending: sortOrder === "asc", nullsFirst: false });
-    // 같은 촬영일이거나 NULL인 경우 업로드 시간 기준으로 2차 정렬
-    query = query.order("created_at", { ascending: sortOrder === "asc" });
-  } else {
-    query = query.order(sortBy, { ascending: sortOrder === "asc" });
-  }
+  query = query.order(sortBy, { ascending: sortOrder === "asc" });
 
   // 페이지네이션 적용
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
-  if (options.offset) {
-    query = query.range(
-      options.offset,
-      options.offset + (options.limit || 50) - 1,
-    );
-  }
+  const limit = options.limit || DEFAULT_PAGE_SIZE;
+  const offset = options.offset || 0;
+
+  // range만 사용 (limit과 offset 모두 처리)
+  query = query.range(offset, offset + limit - 1);
 
   const { data: files, error } = await query;
   if (error) throw error;
@@ -705,7 +696,7 @@ export async function getFolderFiles(
 /**
  * 경로 문자열을 기반으로 폴더 ID를 찾는 함수
  * 경로 형식: "/test/bb/11" 또는 "test/bb/11"
- * 
+ *
  * @param userId - 사용자 ID
  * @param pathString - 슬래시로 구분된 폴더 경로 문자열
  * @returns 해당 경로의 폴더 ID, 존재하지 않으면 null
@@ -719,12 +710,12 @@ export async function findFolderByPath(
   }
 
   const supabase = await createClient();
-  
+
   // 앞뒤 슬래시 제거하고 경로를 분리
   const cleanPath = pathString.replace(/^\/+|\/+$/g, "");
   const pathSegments = cleanPath
     .split("/")
-    .filter(segment => segment.trim() !== "");
+    .filter((segment) => segment.trim() !== "");
 
   if (pathSegments.length === 0) {
     return null;

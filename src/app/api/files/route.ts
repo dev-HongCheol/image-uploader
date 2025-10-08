@@ -1,8 +1,9 @@
+import { DEFAULT_PAGE_SIZE } from "@/constants/common";
 import { createClient } from "@/utils/supabase/server";
-import { 
-  findFolderByPath, 
-  getFolderFiles, 
-  getOrCreateUserRoot 
+import {
+  findFolderByPath,
+  getFolderFiles,
+  getOrCreateUserRoot
 } from "@/utils/folder-system";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE));
     const offset = parseInt(searchParams.get("offset") || "0");
     const sortBy = searchParams.get("sortBy") as "created_at" | "name" | "size" || "created_at";
     const sortOrder = searchParams.get("sortOrder") as "asc" | "desc" || "desc";

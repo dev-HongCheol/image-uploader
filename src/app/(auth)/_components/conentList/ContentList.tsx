@@ -1,23 +1,21 @@
 "use client";
 
-import { getContentApi } from "@/lib/api/content-api";
-import { Folder, UploadedFile, UploadedFileInfo } from "@/types/database";
-import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_PAGE_SIZE } from "@/constants/common";
+import { ContentResponse, getContentApi } from "@/lib/api/content-api";
+import { UploadedFile } from "@/types/database";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Folder as FolderIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useInView } from "react-intersection-observer";
 import ContentDetailDialog from "./ContentDetailDialog";
 import ContentItem from "./ContentItem";
 import SelectedFileControlPanel from "./selectedFileControlPanel/SelectedFileControlPanel";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ContentListProps = {
-  initialData: {
-    folders: Folder[];
-    files: UploadedFileInfo[];
-    currentPath: string;
-    folderId: string;
-  };
+  initialData: ContentResponse;
 };
 
 /**
@@ -31,6 +29,7 @@ export default function ContentList({ initialData }: ContentListProps) {
   const [previewFile, setPreviewFile] = useState<UploadedFile>();
   /** 선택된 파일들 */
   const [selectedFileIds, setSelectedFileIds] = useState<number[]>([]);
+  const { ref, inView } = useInView();
 
   const handlePreviewFile = useCallback(
     (file: UploadedFile | undefined) => setPreviewFile(file),
@@ -42,19 +41,52 @@ export default function ContentList({ initialData }: ContentListProps) {
     setSelectedFileIds([]);
   }, [currentPath]);
 
-  // React Query로 데이터 관리
-  const { data, isLoading, refetch, error } = useQuery({
-    queryKey: ["content", currentPath],
-    queryFn: () => getContentApi({ path: currentPath }),
-    initialData,
-    staleTime: 30000, // 30초간 fresh
-    refetchOnWindowFocus: false,
-  });
+  const { data, error, refetch, hasNextPage, fetchNextPage, isFetching } =
+    useInfiniteQuery({
+      queryKey: ["content", currentPath],
+      queryFn: ({ pageParam }) =>
+        getContentApi({ path: currentPath, offset: pageParam }),
+      getNextPageParam: (lastPage, allPages) => {
+        // 마지막 페이지에 파일이 없거나 페이지 크기보다 적으면 더 이상 페이지 없음
+        if (!lastPage.files || lastPage.files.length < DEFAULT_PAGE_SIZE) {
+          return undefined;
+        }
+        // 다음 offset = 현재까지 받은 모든 파일 개수
+        const totalFiles = allPages.reduce(
+          (sum, page) => sum + (page.files?.length || 0),
+          0,
+        );
+        return totalFiles;
+      },
+      initialPageParam: 0,
+      initialData: {
+        pages: [initialData],
+        pageParams: [0],
+      },
 
-  const memoizedFolders = useMemo(() => data?.folders, [data?.folders]);
-  const memoizedFiles = useMemo(() => data?.files, [data?.files]);
+      select: (data) => {
+        // 모든 페이지의 파일을 하나의 배열로 병합
+        const files = data.pages.flatMap((page) => page.files);
 
-  const memoizedSelectedFiles = useMemo(() => {
+        // 첫 페이지의 폴더 정보와 병합된 파일 목록 반환
+        return {
+          folders: data.pages[0].folders,
+          files,
+          currentPath: data.pages[0].currentPath,
+          folderId: data.pages[0].folderId,
+        };
+      },
+    });
+
+  useEffect(() => {
+    if (hasNextPage && !isFetching && inView) {
+      console.log("fetching..");
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetching]);
+
+  // 선택된 파일들 (React Query의 data는 이미 메모이제이션되어 있음)
+  const selectedFiles = useMemo(() => {
     return data.files.filter((file, index) => selectedFileIds.includes(index));
   }, [selectedFileIds, data.files]);
 
@@ -140,20 +172,18 @@ export default function ContentList({ initialData }: ContentListProps) {
   return (
     <div>
       {/* 선택된 파일 정보 및 컨트롤러 */}
-      {
-        <SelectedFileControlPanel
-          selectedFiles={memoizedSelectedFiles}
-          currentPath={currentPath}
-          onMoveComplete={handleMoveComplete}
-        />
-      }
+      <SelectedFileControlPanel
+        selectedFiles={selectedFiles}
+        currentPath={currentPath}
+        onMoveComplete={handleMoveComplete}
+      />
 
       {/* 폴더 목록 */}
-      {memoizedFolders?.length > 0 && (
+      {folders && folders.length > 0 && (
         <div className="">
           <h2 className="mb-3 text-lg font-semibold">폴더</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {memoizedFolders.map((folder) => (
+            {folders.map((folder) => (
               <Link
                 key={folder.id}
                 href={`/?path=${encodeURIComponent(
@@ -193,15 +223,14 @@ export default function ContentList({ initialData }: ContentListProps) {
           />
         )}
 
-        {memoizedFiles?.length > 0 && (
+        {files && files.length > 0 && (
           <h2 className="mb-3 text-lg font-semibold">파일</h2>
         )}
 
-        {isLoading ? (
-          <div className="rounded-lg border p-4 text-gray-500">로딩 중...</div>
-        ) : memoizedFiles?.length ? (
-          <div className="grid grid-cols-2 gap-3 select-none md:grid-cols-3 2xl:grid-cols-4">
-            {memoizedFiles.map((file, index) => (
+        <div className="grid grid-cols-2 gap-3 select-none md:grid-cols-3 2xl:grid-cols-4">
+          {files &&
+            files.length > 0 &&
+            files.map((file, index) => (
               <ContentItem
                 isSelected={selectedFileIds.includes(index)}
                 key={file.id}
@@ -211,14 +240,25 @@ export default function ContentList({ initialData }: ContentListProps) {
                 handleFileSelect={handleFileSelect}
               />
             ))}
-          </div>
-        ) : (
-          !folders?.length && (
-            <div className="rounded-lg border p-4 text-gray-500">
-              폴더나 파일이 없습니다.
-            </div>
-          )
-        )}
+          {isFetching && (
+            <>
+              <div className="flex flex-col gap-0.5 rounded-lg border p-1.5 md:gap-2 md:p-4">
+                <Skeleton className="h-6" />
+                <Skeleton className="h-32 justify-center sm:h-44 md:h-52" />
+              </div>
+              <div className="flex flex-col gap-0.5 rounded-lg border p-1.5 md:gap-2 md:p-4">
+                <Skeleton className="h-6" />
+                <Skeleton className="h-32 justify-center sm:h-44 md:h-52" />
+              </div>
+              <div className="flex flex-col gap-0.5 rounded-lg border p-1.5 md:gap-2 md:p-4">
+                <Skeleton className="h-6" />
+                <Skeleton className="h-32 justify-center sm:h-44 md:h-52" />
+              </div>
+            </>
+          )}
+
+          <div ref={ref} />
+        </div>
       </div>
     </div>
   );

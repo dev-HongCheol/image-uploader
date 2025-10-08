@@ -10,4 +10,7 @@ const FUNCTION_NAMES = {
 
 const ROOT_FOLDER_NAME = "My Files";
 
-export { BUCKET_NAMES, FUNCTION_NAMES, ROOT_FOLDER_NAME };
+/** 파일 목록 조회 시 한 번에 가져올 파일 개수 */
+const DEFAULT_PAGE_SIZE = 20;
+
+export { BUCKET_NAMES, FUNCTION_NAMES, ROOT_FOLDER_NAME, DEFAULT_PAGE_SIZE };
