@@ -2,19 +2,22 @@
 FROM node:20.11-slim AS deps
 WORKDIR /app
 
-# pnpm 설치
-RUN npm install -g pnpm@8
+# pnpm 설치 및 설정
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
 # 의존성 파일만 복사
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+
+# 의존성 설치 (재시도 및 타임아웃 설정)
+RUN pnpm config set network-timeout 300000 && \
+    pnpm install --frozen-lockfile --no-optional
 
 # Builder stage
 FROM node:20.11-slim AS builder
 WORKDIR /app
 
 # pnpm 설치
-RUN npm install -g pnpm@8
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
 # 의존성 복사
 COPY --from=deps /app/node_modules ./node_modules
