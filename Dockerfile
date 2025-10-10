@@ -8,6 +8,7 @@ RUN apt-get update && \
     python3 \
     make \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # pnpm 설치 및 설정
@@ -51,7 +52,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV TZ=Asia/Seoul
 
-RUN ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+# 헬스체크용 curl 설치
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
 
 # standalone 출력물과 필요한 파일만 복사
 COPY --from=builder /app/.next/standalone ./
@@ -59,5 +64,9 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
 EXPOSE 3000
+
+# 간단한 헬스체크 (메인 페이지 접근만 확인)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 CMD ["node", "server.js"]

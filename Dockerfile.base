@@ -1,0 +1,26 @@
+# 베이스 이미지 생성용 Dockerfile
+# 한 번만 빌드해서 재사용
+FROM node:20.11-alpine
+
+# 모든 네이티브 의존성을 미리 설치
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    libc6-compat \
+    vips-dev \
+    curl \
+    tzdata \
+    htop \
+    && rm -rf /var/cache/apk/*
+
+# pnpm 미리 설치
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+# 시간대 설정
+RUN ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
+    echo "Asia/Seoul" > /etc/timezone
+
+# 사용자 미리 생성
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
