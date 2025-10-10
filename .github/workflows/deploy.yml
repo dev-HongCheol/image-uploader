@@ -68,11 +68,23 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Build base image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.base
+          push: false
+          platforms: linux/arm64
+          tags: my-node-base
+          cache-from: |
+            type=gha,scope=buildkit-base
+          cache-to: type=gha,mode=max,scope=buildkit-base
+
       - name: Build multi-stage Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.fast
           push: true
           platforms: linux/arm64
           tags: |
