@@ -90,9 +90,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-          # 빌드 최적화 옵션
-          build-contexts: |
-            node_cache=/tmp/buildkit-node-cache
+          # 빌드 최적화 옵션 (node_cache 제거)
 
       - name: Deploy to Orange Pi Server
         uses: appleboy/ssh-action@master
