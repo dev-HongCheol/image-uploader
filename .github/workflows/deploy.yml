@@ -78,7 +78,10 @@ jobs:
           tags: my-node-base
           cache-from: |
             type=gha,scope=buildkit-base
-          cache-to: type=gha,mode=max,scope=buildkit-base
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:basecache
+          cache-to: |
+            type=gha,mode=max,scope=buildkit-base
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:basecache,mode=max
 
       - name: Build multi-stage Docker image
         uses: docker/build-push-action@v5
@@ -96,7 +99,10 @@ jobs:
           cache-from: |
             type=gha,scope=buildkit-${{ github.ref_name }}
             type=gha,scope=buildkit-main
-          cache-to: type=gha,mode=max,scope=buildkit-${{ github.ref_name }}
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:buildcache-${{ github.ref_name }}
+          cache-to: |
+            type=gha,mode=max,scope=buildkit-${{ github.ref_name }}
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:buildcache-${{ github.ref_name }},mode=max
           build-args: |
             NODE_VERSION=${{ env.NODE_VERSION }}
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}

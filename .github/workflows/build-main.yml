@@ -66,8 +66,12 @@ jobs:
             ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}
             ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:buildcache
+          cache-to: |
+            type=gha,mode=max
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.repository }}:buildcache,mode=max
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
