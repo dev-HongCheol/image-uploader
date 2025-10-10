@@ -83,7 +83,7 @@ const FileMoveDialog = ({
   // 파일 이동 mutation
   const moveFilesMutation = useMutation({
     mutationFn: (data: MoveFilesRequest) => moveFilesApi(data),
-    onSuccess: (result) => {
+    onSuccess: () => {
       // 전체 컨텐츠 목록 새로고침
       queryClient.invalidateQueries({ queryKey: ["content", currentPath] });
 

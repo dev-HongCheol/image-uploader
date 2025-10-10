@@ -27,7 +27,7 @@ export default async function MainPage({ searchParams }: Props) {
   }
 
   const { path } = await searchParams;
-  let currentPath = path || "";
+  const currentPath = path || "";
   let files: UploadedFileInfo[] = [];
   let folders: Folder[] = [];
   let folderId: string = "";

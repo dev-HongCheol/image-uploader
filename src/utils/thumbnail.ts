@@ -13,7 +13,7 @@
  */
 
 import sharp from 'sharp';
-import { HEIC_EXTENSIONS, isHEICFile, SUPPORTED_IMAGE_EXTENSIONS } from './heic';
+import { HEIC_EXTENSIONS, SUPPORTED_IMAGE_EXTENSIONS } from './heic';
 
 // heic-convert 라이브러리 타입 정의
 interface HeicConvertOptions {

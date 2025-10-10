@@ -29,7 +29,7 @@ export const folderKeys = {
  */
 export function useFoldersQuery(params: GetFoldersParams = {}) {
   return useQuery({
-    queryKey: folderKeys.list(params.parentId),
+    queryKey: [...folderKeys.list(params.parentId), params],
     queryFn: () => getFoldersApi(params),
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     retry: (failureCount, error) => {
@@ -49,7 +49,7 @@ export function useCreateFolderMutation() {
 
   return useMutation({
     mutationFn: createFolderApi,
-    onSuccess: (newFolder) => {
+    onSuccess: () => {
       // 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
 

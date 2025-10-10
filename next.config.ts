@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: 'standalone',
+  // Windows 환경에서는 심볼릭 링크 권한 문제로 standalone 모드 비활성화
+  ...(process.platform !== 'win32' && { output: 'standalone' }),
   images: {
     remotePatterns: [
       {
