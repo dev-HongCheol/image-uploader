@@ -3,6 +3,7 @@
 import { UploadedFile, UploadedFileInfo } from "@/types/database";
 import { File, Image, NotebookText, Video } from "lucide-react";
 import { MouseEvent } from "react";
+import { clsx } from "clsx";
 type props = {
   file: UploadedFileInfo;
   isSelected: boolean;
@@ -12,6 +13,11 @@ type props = {
     event: MouseEvent<HTMLDivElement>,
     selectFileIndex: number,
   ) => void;
+  onTouchStart?: () => void;
+  onTouchEnd?: () => void;
+  onTouchMove?: () => void;
+  longPressActive?: boolean;
+  isSelectionMode?: boolean;
 };
 
 const ContentItem = ({
@@ -20,6 +26,11 @@ const ContentItem = ({
   index,
   handlePreviewFile,
   handleFileSelect,
+  onTouchStart,
+  onTouchEnd,
+  onTouchMove,
+  longPressActive = false,
+  isSelectionMode = false,
 }: props) => {
   /**
    * 파일 타입에 따른 아이콘 반환
@@ -63,12 +74,23 @@ const ContentItem = ({
       onClick={(event: MouseEvent<HTMLDivElement>) =>
         handleFileSelect(event, index)
       }
-      className={`flex flex-col gap-0.5 rounded-lg border p-1.5 transition-colors hover:border-dashed md:gap-2 md:p-4 ${isSelected ? "bg-stone-700" : "bg-inherit"}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchMove={onTouchMove}
+      className={clsx(
+        "flex touch-manipulation flex-col gap-1 rounded-lg border p-1.5",
+        "transition-colors select-none hover:border-dashed md:gap-2 md:p-4",
+        isSelected ? "bg-stone-700" : "bg-inherit",
+        isSelectionMode && "border-solid",
+        longPressActive && "scale-95 bg-gray-100",
+      )}
     >
       {/* title section */}
       <div className="flex items-center gap-x-1.5">
         <p>{FileTypeIcon(file.file_type)}</p>
-        <p className="flex-1 truncate font-medium">{file.display_filename}</p>
+        <p className="flex-1 truncate text-sm font-medium">
+          {file.display_filename}
+        </p>
       </div>
 
       {file.signedThumbnailUrl && file.mime_type.includes("image") ? (

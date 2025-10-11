@@ -7,12 +7,15 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Folder as FolderIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import ContentDetailDialog from "./ContentDetailDialog";
 import ContentItem from "./ContentItem";
 import SelectedFileControlPanel from "./selectedFileControlPanel/SelectedFileControlPanel";
+import SelectionModeUI from "./SelectionModeUI";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFileSelection } from "./hooks/useFileSelection";
+import { useTouchSelection } from "./hooks/useTouchSelection";
 
 type ContentListProps = {
   initialData: ContentResponse;
@@ -27,19 +30,7 @@ export default function ContentList({ initialData }: ContentListProps) {
   const currentPath = searchParams.get("path") || "";
   /** 미리보기 파일 */
   const [previewFile, setPreviewFile] = useState<UploadedFile>();
-  /** 선택된 파일들 */
-  const [selectedFileIds, setSelectedFileIds] = useState<number[]>([]);
   const { ref, inView } = useInView();
-
-  const handlePreviewFile = useCallback(
-    (file: UploadedFile | undefined) => setPreviewFile(file),
-    [],
-  );
-
-  // 폴더를 이동하면 선택된 파일 초기화
-  useEffect(() => {
-    setSelectedFileIds([]);
-  }, [currentPath]);
 
   const { data, error, refetch, hasNextPage, fetchNextPage, isFetching } =
     useInfiniteQuery({
@@ -78,6 +69,21 @@ export default function ContentList({ initialData }: ContentListProps) {
       },
     });
 
+  // 커스텀 훅들
+  const touchSelection = useTouchSelection();
+  const fileSelection = useFileSelection(data?.files || []);
+
+  const handlePreviewFile = useCallback(
+    (file: UploadedFile | undefined) => setPreviewFile(file),
+    [],
+  );
+
+  // 폴더를 이동하면 선택된 파일 및 선택 모드 초기화
+  useEffect(() => {
+    fileSelection.clearSelectedFiles();
+    touchSelection.resetSelection();
+  }, [currentPath, fileSelection.clearSelectedFiles, touchSelection.resetSelection]);
+
   useEffect(() => {
     if (hasNextPage && !isFetching && inView) {
       console.log("fetching..");
@@ -85,71 +91,12 @@ export default function ContentList({ initialData }: ContentListProps) {
     }
   }, [inView, hasNextPage, isFetching]);
 
-  // 선택된 파일들 (React Query의 data는 이미 메모이제이션되어 있음)
-  const selectedFiles = useMemo(() => {
-    return data.files.filter((file, index) => selectedFileIds.includes(index));
-  }, [selectedFileIds, data.files]);
-
   const handleMoveComplete = useCallback(() => {
-    // 파일 이동 완료 후 선택 상태 초기화
-    setSelectedFileIds([]);
+    // 파일 이동 완료 후 선택 상태 및 선택 모드 초기화
+    fileSelection.clearSelectedFiles();
+    touchSelection.resetSelection();
     refetch();
-  }, []);
-
-  /**
-   * 파일 선택 핸들러
-   * Ctrl: 다중 선택/해제, Shift: 범위 선택
-   */
-  const handleFileSelect = useCallback(
-    (event: MouseEvent<HTMLDivElement>, fileIndex: number) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (!data?.files || fileIndex < 0 || fileIndex >= data.files.length) {
-        return;
-      }
-
-      const { ctrlKey, shiftKey } = event;
-      const isCurrentlySelected = selectedFileIds.includes(fileIndex);
-
-      // Ctrl + Shift 조합은 무시
-      if (ctrlKey && shiftKey) return;
-
-      // 일반 클릭: 단일 선택
-      if (!ctrlKey && !shiftKey) {
-        setSelectedFileIds(isCurrentlySelected ? [] : [fileIndex]);
-        return;
-      }
-
-      // Ctrl 클릭: 토글 선택
-      if (ctrlKey) {
-        const newSelection = isCurrentlySelected
-          ? selectedFileIds.filter((id) => id !== fileIndex)
-          : [...selectedFileIds, fileIndex].sort((a, b) => a - b);
-
-        setSelectedFileIds(newSelection);
-        return;
-      }
-
-      // Shift 클릭: 범위 선택
-      if (shiftKey && selectedFileIds.length > 0) {
-        const lastSelected = selectedFileIds[selectedFileIds.length - 1];
-        const start = Math.min(lastSelected, fileIndex);
-        const end = Math.max(lastSelected, fileIndex);
-
-        const rangeSelection = Array.from(
-          { length: end - start + 1 },
-          (_, i) => start + i,
-        );
-        const newSelection = [
-          ...new Set([...selectedFileIds, ...rangeSelection]),
-        ].sort((a, b) => a - b);
-
-        setSelectedFileIds(newSelection);
-      }
-    },
-    [selectedFileIds, data?.files],
-  );
+  }, [fileSelection.clearSelectedFiles, touchSelection.resetSelection, refetch]);
 
   if (error) {
     return (
@@ -171,9 +118,17 @@ export default function ContentList({ initialData }: ContentListProps) {
 
   return (
     <div>
+      {/* 선택 모드 UI */}
+      <SelectionModeUI
+        isTouchDevice={touchSelection.isTouchDevice}
+        isSelectionMode={touchSelection.isSelectionMode}
+        selectedFileCount={fileSelection.selectedFileIds.length}
+        onExitSelectionMode={() => touchSelection.setIsSelectionMode(false)}
+      />
+
       {/* 선택된 파일 정보 및 컨트롤러 */}
       <SelectedFileControlPanel
-        selectedFiles={selectedFiles}
+        selectedFiles={fileSelection.selectedFiles}
         currentPath={currentPath}
         onMoveComplete={handleMoveComplete}
       />
@@ -232,12 +187,30 @@ export default function ContentList({ initialData }: ContentListProps) {
             files.length > 0 &&
             files.map((file, index) => (
               <ContentItem
-                isSelected={selectedFileIds.includes(index)}
+                isSelected={fileSelection.selectedFileIds.includes(index)}
                 key={file.id}
                 file={file}
                 index={index}
                 handlePreviewFile={handlePreviewFile}
-                handleFileSelect={handleFileSelect}
+                handleFileSelect={(event, fileIndex) =>
+                  fileSelection.handleFileSelect(
+                    event,
+                    fileIndex,
+                    touchSelection.isTouchDevice,
+                    touchSelection.isSelectionMode,
+                    touchSelection.setIsSelectionMode,
+                  )
+                }
+                onTouchStart={() =>
+                  touchSelection.handleTouchStart(
+                    index,
+                    fileSelection.handleLongPress,
+                  )
+                }
+                onTouchEnd={touchSelection.handleTouchEnd}
+                onTouchMove={touchSelection.handleTouchMove}
+                longPressActive={touchSelection.longPressActive === index}
+                isSelectionMode={touchSelection.isSelectionMode}
               />
             ))}
           {isFetching && (
