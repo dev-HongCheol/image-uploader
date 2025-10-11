@@ -68,16 +68,7 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build base image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.base
-          load: true
-          platforms: linux/arm64
-          tags: my-node-base
-
-      - name: Build multi-stage Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -89,8 +80,6 @@ jobs:
             ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }}
             ghcr.io/${{ steps.repo.outputs.repository }}:latest
           labels: ${{ steps.meta.outputs.labels }}
-          build-contexts: |
-            my-node-base=docker-image://my-node-base
           build-args: |
             NODE_VERSION=${{ env.NODE_VERSION }}
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
@@ -243,15 +232,15 @@ jobs:
             docker logs --tail 10 ${{ env.CONTAINER_NAME }} || true
 
   # 실패 시 알림 (선택사항)
-  notify-failure:
-    name: Notify Deployment Failure
-    runs-on: [self-hosted]
-    needs: docker-build-and-deploy
-    if: failure()
-    steps:
-      - name: Send failure notification
-        run: |
-          echo "❌ Deployment failed for commit ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Repository: ${{ github.repository }}"
-          # 여기에 Slack, Discord 등 알림 로직 추가 가능
+  # notify-failure:
+  #   name: Notify Deployment Failure
+  #   runs-on: [self-hosted]
+  #   needs: docker-build-and-deploy
+  #   if: failure()
+  #   steps:
+  #     - name: Send failure notification
+  #       run: |
+  #         echo "❌ Deployment failed for commit ${{ github.sha }}"
+  #         echo "Branch: ${{ github.ref_name }}"
+  #         echo "Repository: ${{ github.repository }}"
+  #         # 여기에 Slack, Discord 등 알림 로직 추가 가능
