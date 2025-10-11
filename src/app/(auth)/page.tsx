@@ -11,7 +11,7 @@ import ContentList from "./_components/conentList/ContentList";
 import { ContentResponse } from "@/lib/api/content-api";
 
 type Props = {
-  searchParams: { path: string };
+  searchParams: Promise<{ path: string }>;
 };
 
 /**
@@ -27,7 +27,7 @@ export default async function MainPage({ searchParams }: Props) {
   }
 
   const { path } = await searchParams;
-  let currentPath = path || "";
+  const currentPath = path || "";
   let files: UploadedFileInfo[] = [];
   let folders: Folder[] = [];
   let folderId: string = "";

@@ -18,6 +18,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFolderApi } from "@/lib/api/folder-api";
+import { ContentResponse } from "@/lib/api/content-api";
 
 /**
  * 폴더 추가 다이얼로그 컴포넌트
@@ -41,7 +42,7 @@ export default function AddFolderDialog() {
       const previousData = queryClient.getQueryData(["content", path]);
 
       // Optimistic update
-      queryClient.setQueryData(["content", path], (old: any) => {
+      queryClient.setQueryData(["content", path], (old: ContentResponse) => {
         if (!old) return old;
 
         return {
@@ -116,7 +117,7 @@ export default function AddFolderDialog() {
 
       setFolderName("");
       setOpen(false);
-    } catch (error) {
+    } catch {
       // 에러는 이미 mutation에서 toast로 처리됨
     }
   };
@@ -148,7 +149,7 @@ export default function AddFolderDialog() {
               </li>
               <li className="text-start!">
                 <span className="inline-block rounded bg-gray-300 p-0.5 text-xs font-normal dark:bg-gray-800">
-                  '/'와 같은 특수문자는 제한됩니다.
+                  &apos;/&apos;와 같은 특수문자는 제한됩니다.
                 </span>
               </li>
             </ul>

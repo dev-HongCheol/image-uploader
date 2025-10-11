@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const fileType = searchParams.get("fileType") as "image" | "video" | "document" | "other" | undefined;
 
     let folderId: string;
-    let currentPath = path || "";
+    const currentPath = path || "";
 
     if (!currentPath) {
       // 경로가 없으면 루트 폴더

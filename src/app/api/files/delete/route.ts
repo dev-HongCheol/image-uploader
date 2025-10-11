@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest) {
     // 3-2. storage_folders 카운터 업데이트
     for (const [storageFolderId, update] of Object.entries(
       storageFolderUpdates,
-    )) {
+    ) as [string, { count: number; totalSize: number }][]) {
       // 현재 값 조회
       const { data: currentFolder, error: fetchFolderError } = await supabase
         .from("storage_folders")
