@@ -98,6 +98,7 @@ const ContentItem = ({
           onClick={(event) => handleClickContent(event, file)}
           className="flex h-32 justify-center sm:h-44 md:h-52"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
           <img
             src={file.signedThumbnailUrl}
             alt={file.display_filename}

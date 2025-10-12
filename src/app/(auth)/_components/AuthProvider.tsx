@@ -21,7 +21,7 @@ const AuthProvider = ({ children }: Props) => {
 
   useEffect(() => {
     LoginCheck();
-  }, [pathname]);
+  }, [pathname, LoginCheck]);
 
   //   로그인 상태가 변경되면
   useEffect(() => {

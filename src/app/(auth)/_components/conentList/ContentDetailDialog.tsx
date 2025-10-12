@@ -85,6 +85,7 @@ const ContentDetailDialog = ({ open, file, onClose }: Props) => {
     file.mime_type,
     file.original_filename,
     supabase.storage,
+    handleError,
   ]);
 
   /**
