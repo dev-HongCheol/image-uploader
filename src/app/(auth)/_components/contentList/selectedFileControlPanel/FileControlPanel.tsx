@@ -1,22 +1,29 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowDownUp, Trash } from "lucide-react";
+import { ArrowDownUp, Check, Trash } from "lucide-react";
 import FileMoveDialog from "./FileMoveDialog";
 import { useCallback, useState } from "react";
 import { UploadedFile } from "@/types/database";
 import { toast } from "sonner";
+import FileUploadButton from "./FileUploadButton";
+import AddFolderDialog from "./AddFolderDialog";
+import { TouchSelection } from "../hooks/useTouchSelection";
 
 type Props = {
   selectedFiles: UploadedFile[];
   currentPath: string;
   onMoveComplete?: () => void;
+  touchSelection: TouchSelection;
 };
-const SelectedFileControlPanel = ({
+
+const FileControlPanel = ({
   selectedFiles,
   currentPath,
   onMoveComplete,
+  touchSelection,
 }: Props) => {
+  const { isSelectionMode, isTouchDevice, setIsSelectionMode } = touchSelection;
   const [openDialog, setOpenDialog] = useState(false);
 
   const handleCloseDialog = useCallback(
@@ -70,26 +77,54 @@ const SelectedFileControlPanel = ({
   };
   return (
     <div
-      className={`sticky top-7 mb-2 flex items-center justify-between rounded bg-gray-200 p-2 text-sm transition-[visible] dark:bg-gray-800 ${selectedFiles.length > 0 ? "visible" : "invisible"}`}
+      className={
+        "sticky top-[70px] z-10 mb-2 flex items-center justify-between rounded border bg-gray-200 p-2 text-sm dark:bg-gray-800"
+      }
     >
-      <p>선택된 파일 수 : {selectedFiles.length}</p>
+      <div className="flex items-center gap-1">
+        {isTouchDevice && selectedFiles.length === 0 && (
+          <>파일을 길게 터치하여 다중 선택이 가능합니다.</>
+        )}
+        {selectedFiles.length > 0 && (
+          <>
+            <p className="me-2">선택된 파일 수 : {selectedFiles.length}</p>
+            {isSelectionMode && isTouchDevice && (
+              <Button
+                size="icon"
+                className="size-7 text-green-600 hover:cursor-pointer"
+                variant={"outline"}
+                onClick={() => setIsSelectionMode(false)}
+                title="Selection Done"
+              >
+                <Check />
+              </Button>
+            )}
+
+            <Button
+              size="icon"
+              className="size-7 text-blue-600 hover:cursor-pointer dark:text-blue-300"
+              variant={"outline"}
+              onClick={() => setOpenDialog(true)}
+              title="Move File"
+            >
+              <ArrowDownUp />
+            </Button>
+
+            <Button
+              size="icon"
+              className="size-7 text-red-500 hover:cursor-pointer"
+              variant={"outline"}
+              onClick={handleDeleteFiles}
+              title="Delete File"
+            >
+              <Trash />
+            </Button>
+          </>
+        )}
+      </div>
       <div className="flex gap-1">
-        <Button
-          size="icon"
-          className="size-6 hover:cursor-pointer"
-          variant={"outline"}
-          onClick={() => setOpenDialog(true)}
-        >
-          <ArrowDownUp />
-        </Button>
-        <Button
-          size="icon"
-          className="size-6 hover:cursor-pointer"
-          variant={"outline"}
-          onClick={handleDeleteFiles}
-        >
-          <Trash />
-        </Button>
+        <FileUploadButton />
+        <AddFolderDialog />
       </div>
 
       <FileMoveDialog
@@ -103,4 +138,4 @@ const SelectedFileControlPanel = ({
   );
 };
 
-export default SelectedFileControlPanel;
+export default FileControlPanel;

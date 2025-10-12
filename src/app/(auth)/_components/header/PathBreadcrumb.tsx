@@ -6,6 +6,8 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import clsx from "clsx";
+import { House } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Fragment, useMemo } from "react";
@@ -82,17 +84,17 @@ const PathBreadcrumb = () => {
     return parsePath(currentPath);
   }, [currentPath]);
 
-  // 경로가 없거나 유효하지 않으면 렌더링하지 않음
-  if (pathInfoArr.length === 0) {
-    return null;
-  }
-
   return (
     <Breadcrumb>
       <BreadcrumbList>
         {/* 홈 링크 */}
         <BreadcrumbItem>
-          <Link href="/">홈</Link>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-lg hover:text-gray-500"
+          >
+            <House className="size-4" /> 홈
+          </Link>
         </BreadcrumbItem>
 
         {pathInfoArr.length > 0 && <BreadcrumbSeparator />}
@@ -108,7 +110,10 @@ const PathBreadcrumb = () => {
                     : `/?path=${encodeURIComponent(pathInfo.fullPath)}`
                 }
                 className={
-                  index === pathInfoArr.length - 1 ? "font-semibold" : ""
+                  (clsx(
+                    index === pathInfoArr.length - 1 ? "font-semibold" : "",
+                  ),
+                  "text-lg hover:text-gray-500")
                 }
               >
                 {pathInfo.name}

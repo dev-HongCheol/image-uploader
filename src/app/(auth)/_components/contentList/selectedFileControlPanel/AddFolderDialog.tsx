@@ -127,8 +127,8 @@ export default function AddFolderDialog() {
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="size-8 hover:cursor-pointer"
-          variant={"secondary"}
+          className="size-7 text-blue-600 hover:cursor-pointer dark:text-blue-300"
+          variant={"outline"}
           title="Add Folder"
         >
           <FilePlus />
