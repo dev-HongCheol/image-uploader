@@ -2,6 +2,11 @@ import { useCallback, useRef, useState } from "react";
 import { useTouchDetection } from "@/hooks/useTouchDetection";
 
 /**
+ * 터치 선택 훅의 반환 타입
+ */
+export type TouchSelection = ReturnType<typeof useTouchSelection>;
+
+/**
  * 터치 기반 파일 선택을 위한 커스텀 훅
  * @returns 터치 선택 관련 상태와 핸들러들
  */

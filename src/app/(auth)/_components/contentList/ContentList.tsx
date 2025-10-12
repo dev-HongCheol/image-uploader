@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_PAGE_SIZE } from "@/constants/common";
 import { ContentResponse, getContentApi } from "@/lib/api/content-api";
 import { UploadedFile } from "@/types/database";
@@ -11,11 +12,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import ContentDetailDialog from "./ContentDetailDialog";
 import ContentItem from "./ContentItem";
-import SelectedFileControlPanel from "./selectedFileControlPanel/SelectedFileControlPanel";
-import SelectionModeUI from "./SelectionModeUI";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useFileSelection } from "./hooks/useFileSelection";
 import { useTouchSelection } from "./hooks/useTouchSelection";
+import FileControlPanel from "./selectedFileControlPanel/FileControlPanel";
 
 type ContentListProps = {
   initialData: ContentResponse;
@@ -82,7 +81,11 @@ export default function ContentList({ initialData }: ContentListProps) {
   useEffect(() => {
     fileSelection.clearSelectedFiles();
     touchSelection.resetSelection();
-  }, [currentPath, fileSelection.clearSelectedFiles, touchSelection.resetSelection]);
+  }, [
+    currentPath,
+    fileSelection.clearSelectedFiles,
+    touchSelection.resetSelection,
+  ]);
 
   useEffect(() => {
     if (hasNextPage && !isFetching && inView) {
@@ -96,7 +99,11 @@ export default function ContentList({ initialData }: ContentListProps) {
     fileSelection.clearSelectedFiles();
     touchSelection.resetSelection();
     refetch();
-  }, [fileSelection.clearSelectedFiles, touchSelection.resetSelection, refetch]);
+  }, [
+    fileSelection.clearSelectedFiles,
+    touchSelection.resetSelection,
+    refetch,
+  ]);
 
   if (error) {
     return (
@@ -118,19 +125,12 @@ export default function ContentList({ initialData }: ContentListProps) {
 
   return (
     <div>
-      {/* 선택 모드 UI */}
-      <SelectionModeUI
-        isTouchDevice={touchSelection.isTouchDevice}
-        isSelectionMode={touchSelection.isSelectionMode}
-        selectedFileCount={fileSelection.selectedFileIds.length}
-        onExitSelectionMode={() => touchSelection.setIsSelectionMode(false)}
-      />
-
       {/* 선택된 파일 정보 및 컨트롤러 */}
-      <SelectedFileControlPanel
+      <FileControlPanel
         selectedFiles={fileSelection.selectedFiles}
         currentPath={currentPath}
         onMoveComplete={handleMoveComplete}
+        touchSelection={touchSelection}
       />
 
       {/* 폴더 목록 */}

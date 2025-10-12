@@ -104,13 +104,14 @@ const FileUploadButton = () => {
         onChange={handleFileChange}
       />
       <Button
+        size="icon"
+        className="size-7 text-blue-600 dark:text-blue-300"
         variant="outline"
-        title="upload"
+        title="Upload File"
         onClick={handleClickFileBtn}
         disabled={isUploading}
       >
         <CloudUpload />
-        {isUploading ? "Uploading..." : "Upload"}
       </Button>
     </form>
   );

@@ -13,7 +13,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { User } from "@supabase/supabase-js";
-import FileUploadButton from "./FileUploadButton";
+import FileUploadButton from "../contentList/selectedFileControlPanel/FileUploadButton";
 import { ModeSelectDropdown } from "./ModeSelectDropdown";
 import { SearchForm } from "./SearchForm";
 

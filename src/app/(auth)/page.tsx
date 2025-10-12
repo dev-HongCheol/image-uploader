@@ -7,7 +7,7 @@ import {
   getOrCreateUserRoot,
 } from "@/utils/folder-system";
 import { createClient } from "@/utils/supabase/server";
-import ContentList from "./_components/conentList/ContentList";
+import ContentList from "./_components/contentList/ContentList";
 import { ContentResponse } from "@/lib/api/content-api";
 
 type Props = {
@@ -78,7 +78,7 @@ export default async function MainPage({ searchParams }: Props) {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       {/* 클라이언트 컴포넌트로 실시간 업데이트 처리 */}
       <ContentList initialData={initialData} />
     </div>
