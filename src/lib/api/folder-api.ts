@@ -107,3 +107,28 @@ export async function deleteFolderApi(
 
   await handleApiResponse<void>(response);
 }
+
+/**
+ * 폴더 이동 요청 타입
+ */
+export interface MoveFolderRequest {
+  folderId: string;
+  targetPath: string;
+}
+
+/**
+ * 폴더를 다른 경로로 이동
+ */
+export async function moveFolderApi(
+  data: MoveFolderRequest,
+): Promise<Folder> {
+  const response = await fetch("/api/folders/move", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleApiResponse<Folder>(response);
+}

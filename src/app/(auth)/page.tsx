@@ -7,7 +7,7 @@ import {
   getOrCreateUserRoot,
 } from "@/utils/folder-system";
 import { createClient } from "@/utils/supabase/server";
-import ContentList from "./_components/contentList/ContentList";
+import ContentList from "./_/components/contentList/ContentList";
 import { ContentResponse } from "@/lib/api/content-api";
 
 type Props = {

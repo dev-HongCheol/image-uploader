@@ -6,7 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getContentApi } from "@/lib/api/content-api";
-import { createFolderApi } from "@/lib/api/folder-api";
+import {
+  createFolderApi,
+  moveFolderApi,
+  MoveFolderRequest,
+} from "@/lib/api/folder-api";
 import { moveFilesApi } from "@/lib/api/file-api";
 import { Folder, UploadedFile } from "@/types/database";
 import { CreateFolderRequest } from "@/types/folder-api";
@@ -21,33 +25,40 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 
-type FileMoveDialogProps = {
+type MoveFileDialogProps = {
   open: boolean;
   onClose: () => void;
-  currentPath: string;
   onMoveComplete?: () => void;
   selectedFiles: UploadedFile[];
+  /** 이동 중인 폴더 ID (목록에서 제외하기 위함) */
+  movingFolderId?: string;
 };
 
 /**
- * 파일 이동 다이얼로그
+ * 파일/폴더 이동 다이얼로그
  * 선택된 파일들을 다른 폴더로 이동하고 새 폴더를 생성할 수 있는 다이얼로그
  */
-const FileMoveDialog = ({
+const MoveFileDialog = ({
   open,
   onClose,
-  currentPath,
   onMoveComplete,
   selectedFiles,
-}: FileMoveDialogProps) => {
-  const [currentDialogPath, setCurrentDialogPath] = useState(currentPath);
+  movingFolderId,
+}: MoveFileDialogProps) => {
+  const currentPath = useSearchParams().get("path") || "";
+  const [currentDialogPath, setCurrentDialogPath] = useState("");
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setCurrentDialogPath(currentPath);
+  }, [currentPath]);
 
   // 폴더 생성 mutation
   const createFolderMutation = useMutation({
@@ -84,7 +95,6 @@ const FileMoveDialog = ({
   const moveFilesMutation = useMutation({
     mutationFn: (data: MoveFilesRequest) => moveFilesApi(data),
     onSuccess: () => {
-      // 전체 컨텐츠 목록 새로고침
       queryClient.invalidateQueries({ queryKey: ["content", currentPath] });
 
       const targetPathDisplay = currentDialogPath || "/";
@@ -105,7 +115,39 @@ const FileMoveDialog = ({
     },
   });
 
+  // 폴더 이동 mutation
+  const moveFolderMutation = useMutation({
+    mutationFn: (data: MoveFolderRequest) => moveFolderApi(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["content", currentPath] });
+
+      const targetPathDisplay = currentDialogPath || "/";
+      toast.success(`폴더가 '${targetPathDisplay}'로 이동되었습니다.`);
+
+      onMoveComplete?.();
+      onClose();
+    },
+    onError: (error) => {
+      console.error("폴더 이동 실패:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "폴더 이동 중 오류가 발생했습니다.",
+      );
+    },
+  });
+
   const handleMoveFiles = () => {
+    // 폴더 이동인 경우
+    if (movingFolderId) {
+      moveFolderMutation.mutate({
+        folderId: movingFolderId,
+        targetPath: currentDialogPath || "",
+      });
+      return;
+    }
+
+    // 파일 이동인 경우
     if (selectedFiles.length === 0) {
       console.warn("이동할 파일이 선택되지 않았습니다.");
       return;
@@ -191,14 +233,14 @@ const FileMoveDialog = ({
                 onClick={handleMoveFiles}
                 size="sm"
                 disabled={
-                  selectedFiles.length === 0 || moveFilesMutation.isPending
+                  moveFilesMutation.isPending || moveFolderMutation.isPending
                 }
                 className="flex items-center gap-1"
               >
                 <MoveRight className="h-4 w-4" />
-                {moveFilesMutation.isPending
+                {moveFilesMutation.isPending || moveFolderMutation.isPending
                   ? "이동 중..."
-                  : `${selectedFiles.length}개 파일 이동`}
+                  : "이동"}
               </Button>
             </div>
           </div>
@@ -242,6 +284,7 @@ const FileMoveDialog = ({
         <FolderNavigationList
           currentPath={currentDialogPath}
           onFolderNavigate={handleFolderNavigate}
+          movingFolderId={movingFolderId}
         />
       </DialogContent>
     </Dialog>
@@ -254,11 +297,14 @@ const FileMoveDialog = ({
 type FolderNavigationListProps = {
   currentPath: string;
   onFolderNavigate: (folder: Folder) => void;
+  /** 이동 중인 폴더 ID (자기 자신 제외) */
+  movingFolderId?: string;
 };
 
 const FolderNavigationList = ({
   currentPath,
   onFolderNavigate,
+  movingFolderId,
 }: FolderNavigationListProps) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["folders", currentPath],
@@ -284,10 +330,19 @@ const FolderNavigationList = ({
 
   const folders = data?.folders || [];
 
-  if (folders.length === 0) {
+  // 이동 중인 폴더는 목록에서 제외 (자기 자신으로 이동 방지)
+  const filteredFolders = movingFolderId
+    ? folders.filter((folder) => folder.id !== movingFolderId)
+    : folders;
+
+  if (filteredFolders.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">하위 폴더가 없습니다.</div>
+        <div className="text-gray-500">
+          {movingFolderId && folders.length > 0
+            ? "이동 가능한 하위 폴더가 없습니다."
+            : "하위 폴더가 없습니다."}
+        </div>
       </div>
     );
   }
@@ -295,7 +350,7 @@ const FolderNavigationList = ({
   return (
     <div className="max-h-96 overflow-y-auto">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {folders.map((folder) => (
+        {filteredFolders.map((folder) => (
           <button
             key={folder.id}
             onClick={() => onFolderNavigate(folder)}
@@ -323,4 +378,4 @@ const FolderNavigationList = ({
   );
 };
 
-export default FileMoveDialog;
+export default MoveFileDialog;

@@ -1,11 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
 import { ReactNode } from "react";
 import GoogleLoginButton from "../auth/login/_/components/GoogleLoginButton";
-
 import { Separator } from "@/components/ui/separator";
-import AuthProvider from "./_components/AuthProvider";
-import PathBreadcrumb from "./_components/header/PathBreadcrumb";
-import { ModeSelectDropdown } from "./_components/nav/ModeSelectDropdown";
+import AuthProvider from "./_/AuthProvider";
+import PathBreadcrumb from "./_/components/header/PathBreadcrumb";
+import { ModeSelectDropdown } from "./_/components/header/ModeSelectDropdown";
 
 type Props = {
   children: ReactNode;

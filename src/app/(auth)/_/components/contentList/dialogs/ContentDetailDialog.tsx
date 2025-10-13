@@ -14,7 +14,7 @@ import { clientSupabase } from "@/utils/supabase/client";
 import { isHEICFormat } from "@/utils/heic";
 import { convertHEICUrlToJPEG } from "@/utils/client-heic";
 import { useCallback, useEffect, useState } from "react";
-import ContentRenderer from "./ContentRenderer";
+import ContentRenderer from "../ContentRenderer";
 
 type Props = {
   open: boolean;
