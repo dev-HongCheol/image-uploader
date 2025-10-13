@@ -5,16 +5,15 @@ import { DEFAULT_PAGE_SIZE } from "@/constants/common";
 import { ContentResponse, getContentApi } from "@/lib/api/content-api";
 import { UploadedFile } from "@/types/database";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Folder as FolderIcon } from "lucide-react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
-import ContentDetailDialog from "./ContentDetailDialog";
+import ContentDetailDialog from "./dialogs/ContentDetailDialog";
 import ContentItem from "./ContentItem";
-import { useFileSelection } from "./hooks/useFileSelection";
-import { useTouchSelection } from "./hooks/useTouchSelection";
+import { useFileSelection } from "../../hooks/useFileSelection";
+import { useTouchSelection } from "../../hooks/useTouchSelection";
 import FileControlPanel from "./selectedFileControlPanel/FileControlPanel";
+import FolderList from "./FolderList";
 
 type ContentListProps = {
   initialData: ContentResponse;
@@ -133,40 +132,25 @@ export default function ContentList({ initialData }: ContentListProps) {
         touchSelection={touchSelection}
       />
 
-      {/* 폴더 목록 */}
-      {folders && folders.length > 0 && (
-        <div className="">
-          <h2 className="mb-3 text-lg font-semibold">폴더</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {folders.map((folder) => (
-              <Link
-                key={folder.id}
-                href={`/?path=${encodeURIComponent(
-                  currentPath
-                    ? `${currentPath}/${folder.name}`
-                    : `/${folder.name}`,
-                )}`}
-                className="flex cursor-pointer items-center rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
-              >
-                <div className="mr-3">
-                  <FolderIcon
-                    className="h-5 w-5"
-                    style={{ color: folder.folder_color || "#3b82f6" }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{folder.name}</div>
-                  {folder.description && (
-                    <div className="text-sm text-gray-500">
-                      {folder.description}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
+      {!isFetching &&
+        folders &&
+        folders.length === 0 &&
+        files &&
+        files.length === 0 && (
+          <div className="mt-[5%] text-center">
+            현재 경로는 빈 폴더입니다.
+            <br />
+            파일을 업로드 및 폴더를 생성이 가능하며 상단의 폴더명을 선택하여
+            폴더를 이동 하실 수 있습니다.
           </div>
-        </div>
-      )}
+        )}
+
+      {/* 폴더 목록 */}
+      <FolderList
+        folders={folders || []}
+        currentPath={currentPath}
+        onUpdateComplete={refetch}
+      />
 
       {/* 파일 목록 */}
       <div className="mb-8">

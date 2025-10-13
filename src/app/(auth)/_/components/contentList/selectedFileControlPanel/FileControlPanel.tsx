@@ -2,13 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowDownUp, Check, Trash } from "lucide-react";
-import FileMoveDialog from "./FileMoveDialog";
+import MoveFileDialog from "../dialogs/MoveFileDialog";
 import { useCallback, useState } from "react";
 import { UploadedFile } from "@/types/database";
 import { toast } from "sonner";
 import FileUploadButton from "./FileUploadButton";
-import AddFolderDialog from "./AddFolderDialog";
-import { TouchSelection } from "../hooks/useTouchSelection";
+import AddFolderDialog from "../dialogs/AddFolderDialog";
+import { TouchSelection } from "../../../hooks/useTouchSelection";
 
 type Props = {
   selectedFiles: UploadedFile[];
@@ -82,9 +82,10 @@ const FileControlPanel = ({
       }
     >
       <div className="flex items-center gap-1">
-        {isTouchDevice && selectedFiles.length === 0 && (
-          <>파일을 길게 터치하여 다중 선택이 가능합니다.</>
-        )}
+        {selectedFiles.length === 0 &&
+          (isTouchDevice
+            ? "파일을 길게 터치하여 다중 선택이 가능합니다."
+            : "파일명을 클릭하면 파일선택이 가능하며 ctl, shift키 사용하여 다중선택이 가능합니다.")}
         {selectedFiles.length > 0 && (
           <>
             <p className="me-2">선택된 파일 수 : {selectedFiles.length}</p>
@@ -127,7 +128,7 @@ const FileControlPanel = ({
         <AddFolderDialog />
       </div>
 
-      <FileMoveDialog
+      <MoveFileDialog
         open={openDialog}
         onClose={handleCloseDialog}
         currentPath={currentPath}

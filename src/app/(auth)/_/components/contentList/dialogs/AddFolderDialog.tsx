@@ -18,7 +18,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFolderApi } from "@/lib/api/folder-api";
-import { ContentResponse } from "@/lib/api/content-api";
 
 /**
  * 폴더 추가 다이얼로그 컴포넌트
@@ -31,49 +30,14 @@ export default function AddFolderDialog() {
   const path = searchParams.get("path") || "";
   const queryClient = useQueryClient();
 
-  // Optimistic Updates를 지원하는 mutation
   const { mutateAsync, isPending } = useMutation({
     mutationFn: createFolderApi,
-    onMutate: async (newFolder) => {
-      // 진행 중인 쿼리 취소
-      await queryClient.cancelQueries({ queryKey: ["content", path] });
-
-      // 이전 데이터 백업
-      const previousData = queryClient.getQueryData(["content", path]);
-
-      // Optimistic update
-      queryClient.setQueryData(["content", path], (old: ContentResponse) => {
-        if (!old) return old;
-
-        return {
-          ...old,
-          folders: [
-            ...old.folders,
-            {
-              id: `temp-${Date.now()}`, // 임시 ID
-              name: newFolder.name,
-              folder_color: newFolder.folderColor || "#3b82f6",
-              description: newFolder.description || "",
-              created_at: new Date().toISOString(),
-              // 기타 필요한 필드들
-            },
-          ],
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (err, newFolder, context) => {
-      // 에러 시 롤백
-      if (context?.previousData) {
-        queryClient.setQueryData(["content", path], context.previousData);
-      }
-      toast.error(`폴더 생성 실패: ${err.message}`);
-    },
     onSuccess: () => {
-      // 성공 시 서버에서 최신 데이터 다시 가져오기
       queryClient.invalidateQueries({ queryKey: ["content", path] });
       toast.success("폴더가 성공적으로 생성되었습니다.");
+    },
+    onError: (err) => {
+      toast.error(`폴더 생성 실패: ${err.message}`);
     },
   });
 
@@ -109,10 +73,9 @@ export default function AddFolderDialog() {
     }
 
     try {
-      // Optimistic update와 함께 폴더 생성
       await mutateAsync({
         name: folderName,
-        path: path, // path 쿼리스트링 사용
+        path: path,
       });
 
       setFolderName("");
