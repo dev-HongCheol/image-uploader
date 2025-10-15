@@ -127,7 +127,6 @@ export default function ContentList({ initialData }: ContentListProps) {
       {/* 선택된 파일 정보 및 컨트롤러 */}
       <FileControlPanel
         selectedFiles={fileSelection.selectedFiles}
-        currentPath={currentPath}
         onMoveComplete={handleMoveComplete}
         touchSelection={touchSelection}
       />

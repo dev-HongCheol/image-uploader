@@ -1,25 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowDownUp, Check, Trash } from "lucide-react";
-import MoveFileDialog from "../dialogs/MoveFileDialog";
-import { useCallback, useState } from "react";
 import { UploadedFile } from "@/types/database";
+import { ArrowDownUp, Check, Trash } from "lucide-react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import FileUploadButton from "./FileUploadButton";
-import AddFolderDialog from "../dialogs/AddFolderDialog";
 import { TouchSelection } from "../../../hooks/useTouchSelection";
+import AddFolderDialog from "../dialogs/AddFolderDialog";
+import MoveFileDialog from "../dialogs/MoveFileDialog";
+import FileUploadButton from "./FileUploadButton";
 
 type Props = {
   selectedFiles: UploadedFile[];
-  currentPath: string;
   onMoveComplete?: () => void;
   touchSelection: TouchSelection;
 };
 
 const FileControlPanel = ({
   selectedFiles,
-  currentPath,
   onMoveComplete,
   touchSelection,
 }: Props) => {
@@ -131,7 +129,6 @@ const FileControlPanel = ({
       <MoveFileDialog
         open={openDialog}
         onClose={handleCloseDialog}
-        currentPath={currentPath}
         selectedFiles={selectedFiles}
         onMoveComplete={onMoveComplete}
       />
