@@ -36,7 +36,7 @@ export default function FolderList({
           {folders.map((folder) => (
             <div
               key={folder.id}
-              className="flex cursor-pointer items-center rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
+              className="flex cursor-pointer items-center gap-2 rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
             >
               <Link
                 href={`/?path=${encodeURIComponent(
@@ -44,16 +44,16 @@ export default function FolderList({
                     ? `${currentPath}/${folder.name}`
                     : `/${folder.name}`,
                 )}`}
-                className="flex flex-1 items-center"
+                className="flex min-w-0 flex-1 items-center"
               >
-                <div className="mr-3">
+                <div className="mr-2">
                   <FolderIcon
                     className="h-5 w-5"
                     style={{ color: folder.folder_color || "#3b82f6" }}
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">{folder.name}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{folder.name}</div>
                   {folder.description && (
                     <div className="text-sm text-gray-500">
                       {folder.description}

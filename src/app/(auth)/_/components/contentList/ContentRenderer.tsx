@@ -61,7 +61,7 @@ const ImageContent = ({
     alt={alt}
     onLoad={onContentInit}
     onError={() => onError("이미지를 불러올 수 없습니다.")}
-    className="max-h-[70vh] max-w-full object-contain"
+    className="max-h-[60vh] w-full max-w-[90vw] object-contain"
     style={{
       visibility: isContentInit ? "visible" : "hidden",
     }}
@@ -129,11 +129,10 @@ const ContentRenderer = ({
         />
       )}
 
-      {!error && fileSignedURL &&
-       file.file_type !== "image" &&
-       file.file_type !== "video" && (
-        <UnsupportedFileType />
-      )}
+      {!error &&
+        fileSignedURL &&
+        file.file_type !== "image" &&
+        file.file_type !== "video" && <UnsupportedFileType />}
     </>
   );
 };
