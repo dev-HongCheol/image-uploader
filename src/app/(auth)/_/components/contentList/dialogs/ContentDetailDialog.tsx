@@ -122,9 +122,9 @@ const ContentDetailDialog = ({ open, file, onClose }: Props) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="sm:max-w-auto flex items-center justify-center">
+        <div className="sm:max-w-auto relative flex min-h-32 w-full items-center justify-center md:min-h-52">
           {(!isContentInit || isLoading || !fileSignedURL) && (
-            <Skeleton className="h-32 w-full rounded md:h-52" />
+            <Skeleton className="absolute inset-0 h-full w-full rounded" />
           )}
           {fileSignedURL && (
             <ContentRenderer
