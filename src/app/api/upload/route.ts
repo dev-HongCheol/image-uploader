@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createThumbnail, getImageThumbnailType } from "@/utils/thumbnail";
 import {
   createFileRecord,
+  findFolderByPath,
   getOrCreateActiveStorageFolder,
   incrementStorageFolderCount,
 } from "@/utils/folder-system";
@@ -11,8 +12,8 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 // API Route가 Node.js Runtime을 사용하도록 명시 (heic-convert, sharp 사용)
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /** 한번에 업로드 가능한 최대 파일 개수 */
 const MAX_FILES_PER_REQUEST = 10;
@@ -266,7 +267,10 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
-    const targetFolderId = formData.get("folderId") as string | null;
+    const targetFolderId = await findFolderByPath(
+      user.id,
+      (formData.get("path") as string) || "",
+    );
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
