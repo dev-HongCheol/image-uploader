@@ -4,7 +4,7 @@ import {
   findFolderByPath,
   getFolders,
   getFolderFiles,
-  getOrCreateUserRoot
+  getOrCreateUserRoot,
 } from "@/utils/folder-system";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -15,7 +15,10 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,11 +26,23 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
-    const limit = parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE));
+    const limit = parseInt(
+      searchParams.get("limit") || String(DEFAULT_PAGE_SIZE),
+    );
     const offset = parseInt(searchParams.get("offset") || "0");
-    const sortBy = searchParams.get("sortBy") as "created_at" | "name" | "size" || "created_at";
-    const sortOrder = searchParams.get("sortOrder") as "asc" | "desc" || "desc";
-    const fileType = searchParams.get("fileType") as "image" | "video" | "document" | "other" | undefined;
+    const sortBy =
+      (searchParams.get("sortBy") as "created_at" | "name" | "size") ||
+      "created_at";
+    const sortOrder =
+      (searchParams.get("sortOrder") as "asc" | "desc") || "desc";
+    const fileType = searchParams.get("fileType") as
+      | "image"
+      | "video"
+      | "document"
+      | "other"
+      | undefined;
+    const searchType =
+      (searchParams.get("searchType") as "file" | "folder" | "all") || "all";
 
     let folderId: string;
     const currentPath = path || "";
@@ -39,13 +54,16 @@ export async function GET(request: NextRequest) {
     } else {
       // 경로를 기반으로 폴더 찾기
       const foundFolderId = await findFolderByPath(user.id, currentPath);
-      
+
       if (!foundFolderId) {
-        return NextResponse.json({
-          success: false,
-          error: "Folder not found",
-          message: `경로 '${currentPath}'에 해당하는 폴더를 찾을 수 없습니다.`
-        }, { status: 404 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Folder not found",
+            message: `경로 '${currentPath}'에 해당하는 폴더를 찾을 수 없습니다.`,
+          },
+          { status: 404 },
+        );
       }
 
       folderId = foundFolderId;
@@ -54,13 +72,15 @@ export async function GET(request: NextRequest) {
     // 폴더와 파일을 병렬로 조회
     const [folders, files] = await Promise.all([
       getFolders(folderId, user.id),
-      getFolderFiles(folderId, user.id, {
-        fileType,
-        limit,
-        offset,
-        sortBy,
-        sortOrder,
-      })
+      searchType !== "folder"
+        ? getFolderFiles(folderId, user.id, {
+            fileType,
+            limit,
+            offset,
+            sortBy,
+            sortOrder,
+          })
+        : null,
     ]);
 
     return NextResponse.json({
@@ -70,18 +90,17 @@ export async function GET(request: NextRequest) {
         files,
         currentPath,
         folderId,
-      }
+      },
     });
-
   } catch (error) {
     console.error("컨텐츠 조회 오류:", error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: "Failed to fetch content",
-        message: error instanceof Error ? error.message : "Unknown error"
-      }, 
-      { status: 500 }
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }

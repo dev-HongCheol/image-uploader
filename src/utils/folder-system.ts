@@ -159,7 +159,7 @@ export async function createUserFolder(
 }
 
 /**
- * 논리적 폴더 삭제 함수 (파일이 있으면 삭제 불가)
+ * 논리적 폴더 삭제 함수 (폴더 내 파일과 하위 폴더 모두 삭제)
  *
  * @param userId - 사용자 ID
  * @param folderId - 삭제할 폴더 ID
@@ -190,18 +190,100 @@ export async function deleteUserFolder(
     throw new Error("Cannot delete system folder");
   }
 
-  // 폴더 내 파일 체크
+  // 1. 폴더 내 파일 삭제 (DB + 스토리지)
   const { data: files } = await supabase
     .from("uploaded_files")
-    .select("id")
+    .select("*")
     .eq("folder_id", folderId)
-    .limit(1);
+    .eq("user_id", userId);
 
   if (files && files.length > 0) {
-    throw new Error("Cannot delete folder with files. Move files first.");
+    // 파일 경로 수집
+    const originalFilePaths = files.map((file) => file.file_path);
+    const thumbnailFilePaths = files
+      .filter((file) => file.thumbnail_path)
+      .map((file) => file.thumbnail_path!);
+
+    // storage_folder별 집계
+    const storageFolderUpdates = files.reduce(
+      (acc, file) => {
+        if (!acc[file.storage_folder_id]) {
+          acc[file.storage_folder_id] = {
+            count: 0,
+            totalSize: 0,
+          };
+        }
+        acc[file.storage_folder_id].count += 1;
+        acc[file.storage_folder_id].totalSize += file.file_size;
+        return acc;
+      },
+      {} as Record<string, { count: number; totalSize: number }>,
+    );
+
+    // DB에서 파일 레코드 삭제
+    const { error: deleteFilesError } = await supabase
+      .from("uploaded_files")
+      .delete()
+      .eq("folder_id", folderId)
+      .eq("user_id", userId);
+
+    if (deleteFilesError) {
+      throw new Error(`Failed to delete files from database: ${deleteFilesError.message}`);
+    }
+
+    // storage_folders 카운터 업데이트
+    for (const [storageFolderId, update] of Object.entries(
+      storageFolderUpdates,
+    ) as [string, { count: number; totalSize: number }][]) {
+      const { data: currentFolder } = await supabase
+        .from("storage_folders")
+        .select("file_count, total_size, max_file_count")
+        .eq("id", storageFolderId)
+        .single();
+
+      if (currentFolder) {
+        const newFileCount = Math.max(0, currentFolder.file_count - update.count);
+        const newTotalSize = Math.max(
+          0,
+          currentFolder.total_size - update.totalSize,
+        );
+        const isActive = newFileCount < currentFolder.max_file_count;
+
+        await supabase
+          .from("storage_folders")
+          .update({
+            file_count: newFileCount,
+            total_size: newTotalSize,
+            is_active: isActive,
+          })
+          .eq("id", storageFolderId);
+      }
+    }
+
+    // 스토리지에서 원본 파일 삭제
+    if (originalFilePaths.length > 0) {
+      const { error: removeOriginalsError } = await supabase.storage
+        .from(BUCKET_NAMES.ORIGINALS)
+        .remove(originalFilePaths);
+
+      if (removeOriginalsError) {
+        console.warn("원본 파일 스토리지 삭제 실패:", removeOriginalsError);
+      }
+    }
+
+    // 스토리지에서 썸네일 파일 삭제
+    if (thumbnailFilePaths.length > 0) {
+      const { error: removeThumbnailsError } = await supabase.storage
+        .from(BUCKET_NAMES.THUMBNAILS)
+        .remove(thumbnailFilePaths);
+
+      if (removeThumbnailsError) {
+        console.warn("썸네일 파일 스토리지 삭제 실패:", removeThumbnailsError);
+      }
+    }
   }
 
-  // 하위 폴더 체크
+  // 2. 하위 폴더 재귀적 삭제
   const { data: subfolders } = await supabase
     .from("folders")
     .select("id")
@@ -214,13 +296,13 @@ export async function deleteUserFolder(
       );
     }
 
-    // 재귀적으로 하위 폴더 삭제
+    // 재귀적으로 하위 폴더 삭제 (하위 폴더의 파일도 모두 삭제됨)
     for (const subfolder of subfolders) {
       await deleteUserFolder(userId, subfolder.id, { recursive: true });
     }
   }
 
-  // 폴더 삭제
+  // 3. 폴더 자체 삭제
   const { error } = await supabase
     .from("folders")
     .delete()

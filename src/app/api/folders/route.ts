@@ -164,6 +164,10 @@ export async function PATCH(request: NextRequest) {
 /**
  * 폴더 삭제 API
  * DELETE /api/folders
+ *
+ * 폴더 삭제 시 하위 폴더와 모든 파일을 재귀적으로 삭제합니다.
+ * - 파일: DB 레코드 삭제 + 스토리지에서 원본/썸네일 삭제
+ * - storage_folders 카운터 자동 업데이트
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -175,16 +179,16 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { folderId, recursive = false } = body;
+    const { folderId, recursive = true } = body; // 기본값을 true로 변경
 
     if (!folderId) {
       return NextResponse.json(
-        { error: "Folder ID is required" }, 
+        { error: "Folder ID is required" },
         { status: 400 }
       );
     }
 
-    // 폴더 삭제
+    // 폴더 삭제 (하위 폴더와 파일 모두 삭제)
     await deleteUserFolder(user.id, folderId, { recursive });
 
     return NextResponse.json({
@@ -195,10 +199,10 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("폴더 삭제 오류:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to delete folder",
         message: error instanceof Error ? error.message : "Unknown error"
-      }, 
+      },
       { status: 400 }
     );
   }
