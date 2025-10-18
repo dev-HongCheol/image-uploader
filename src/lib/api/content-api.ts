@@ -45,6 +45,7 @@ export interface GetContentRequest {
   sortBy?: "created_at" | "name" | "size";
   sortOrder?: "asc" | "desc";
   fileType?: "image" | "video" | "document" | "other";
+  searchType?: "file" | "folder" | "all";
 }
 
 /**
@@ -61,16 +62,17 @@ export interface ContentResponse {
  * 폴더 컨텐츠 조회 (폴더 + 파일)
  */
 export async function getContentApi(
-  params: GetContentRequest = {}
+  params: GetContentRequest = {},
 ): Promise<ContentResponse> {
   const url = new URL("/api/content", window.location.origin);
-  
+
   if (params.path) url.searchParams.set("path", params.path);
   if (params.limit) url.searchParams.set("limit", params.limit.toString());
   if (params.offset) url.searchParams.set("offset", params.offset.toString());
   if (params.sortBy) url.searchParams.set("sortBy", params.sortBy);
   if (params.sortOrder) url.searchParams.set("sortOrder", params.sortOrder);
   if (params.fileType) url.searchParams.set("fileType", params.fileType);
+  if (params.searchType) url.searchParams.set("searchType", params.searchType);
 
   const response = await fetch(url.toString());
   return handleApiResponse<ContentResponse>(response);
