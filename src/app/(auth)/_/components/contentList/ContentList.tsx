@@ -67,6 +67,10 @@ export default function ContentList({ initialData }: ContentListProps) {
       },
     });
 
+  useEffect(() => {
+    refetch();
+  }, [refetch, currentPath]);
+
   // 커스텀 훅들
   const touchSelection = useTouchSelection();
   const fileSelection = useFileSelection(data?.files || []);
@@ -95,14 +99,10 @@ export default function ContentList({ initialData }: ContentListProps) {
 
   const handleMoveComplete = useCallback(() => {
     // 파일 이동 완료 후 선택 상태 및 선택 모드 초기화
+    // refetch는 MoveFileDialog의 invalidateQueries가 자동으로 처리
     fileSelection.clearSelectedFiles();
     touchSelection.resetSelection();
-    refetch();
-  }, [
-    fileSelection.clearSelectedFiles,
-    touchSelection.resetSelection,
-    refetch,
-  ]);
+  }, [fileSelection.clearSelectedFiles, touchSelection.resetSelection]);
 
   if (error) {
     return (

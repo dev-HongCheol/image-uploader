@@ -57,7 +57,7 @@ const MoveFileDialog = ({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    setCurrentDialogPath(currentPath);
+    if (open) setCurrentDialogPath(currentPath);
   }, [open]);
 
   // 폴더 생성 mutation
