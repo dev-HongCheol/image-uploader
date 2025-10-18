@@ -106,11 +106,13 @@ const ContentDetailDialog = ({ open, file, onClose }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={() => onClose(undefined)}>
-      <DialogContent className="sm:max-w-[80%]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span className="truncate">{file.original_filename}</span>
-            <span className="text-sm text-gray-700 dark:text-gray-400">
+      <DialogContent className="sm:max-w-[80%] dark:border-gray-200">
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="text-start">
+            <span className="inline-block max-w-[55%] truncate">
+              {file.original_filename}
+            </span>
+            <span className="ps-1.5 text-sm text-gray-700 dark:text-gray-400">
               {Math.floor(file.file_size / 1024).toLocaleString()}KB
             </span>
           </DialogTitle>
@@ -120,9 +122,9 @@ const ContentDetailDialog = ({ open, file, onClose }: Props) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-center">
+        <div className="sm:max-w-auto relative flex min-h-32 w-full items-center justify-center md:min-h-52">
           {(!isContentInit || isLoading || !fileSignedURL) && (
-            <Skeleton className="h-32 w-full rounded md:h-52" />
+            <Skeleton className="absolute inset-0 h-full w-full rounded" />
           )}
           {fileSignedURL && (
             <ContentRenderer

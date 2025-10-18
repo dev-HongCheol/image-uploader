@@ -79,7 +79,7 @@ const ContentItem = ({
       onTouchMove={onTouchMove}
       className={clsx(
         "flex touch-manipulation flex-col gap-1 rounded-lg border p-1.5",
-        "transition-colors select-none hover:border-dashed md:gap-2 md:p-4",
+        "transition-colors select-none hover:border-dashed md:gap-4 md:p-4",
         isSelected ? "bg-stone-700" : "bg-inherit",
         isSelectionMode && "border-solid",
         longPressActive && "scale-95 bg-gray-100",
