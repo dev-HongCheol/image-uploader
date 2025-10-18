@@ -58,7 +58,7 @@ const MoveFileDialog = ({
 
   useEffect(() => {
     setCurrentDialogPath(currentPath);
-  }, [currentPath]);
+  }, [open]);
 
   // 폴더 생성 mutation
   const createFolderMutation = useMutation({
@@ -68,8 +68,6 @@ const MoveFileDialog = ({
       queryClient.invalidateQueries({
         queryKey: ["folders", currentDialogPath],
       });
-      // 전체 컨텐츠 목록도 새로고침 (상위 컴포넌트에서 사용하는 쿼리)
-      queryClient.invalidateQueries({ queryKey: ["content"] });
       setShowCreateFolder(false);
       setNewFolderName("");
 
@@ -233,7 +231,9 @@ const MoveFileDialog = ({
                 onClick={handleMoveFiles}
                 size="sm"
                 disabled={
-                  moveFilesMutation.isPending || moveFolderMutation.isPending
+                  moveFilesMutation.isPending ||
+                  moveFolderMutation.isPending ||
+                  currentDialogPath === currentPath
                 }
                 className="flex items-center gap-1"
               >
@@ -308,7 +308,7 @@ const FolderNavigationList = ({
 }: FolderNavigationListProps) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["folders", currentPath],
-    queryFn: () => getContentApi({ path: currentPath }),
+    queryFn: () => getContentApi({ path: currentPath, searchType: "folder" }),
     staleTime: 30000,
   });
 
