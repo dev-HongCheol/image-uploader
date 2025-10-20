@@ -70,7 +70,7 @@ const FolderManageDialog = ({
   const deleteFolderMutation = useMutation({
     mutationFn: (folderId: string) => deleteFolderApi({ folderId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["content"] });
+      queryClient.invalidateQueries({ queryKey: ["content", path] });
       toast.success("폴더가 삭제되었습니다.");
       onUpdateComplete?.();
       onClose();

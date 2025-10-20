@@ -9,6 +9,8 @@ import { TouchSelection } from "../../../hooks/useTouchSelection";
 import AddFolderDialog from "../dialogs/AddFolderDialog";
 import MoveFileDialog from "../dialogs/MoveFileDialog";
 import FileUploadButton from "./FileUploadButton";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 
 type Props = {
   selectedFiles: UploadedFile[];
@@ -23,6 +25,8 @@ const FileControlPanel = ({
 }: Props) => {
   const { isSelectionMode, isTouchDevice, setIsSelectionMode } = touchSelection;
   const [openDialog, setOpenDialog] = useState(false);
+  const queryClient = useQueryClient();
+  const path = useSearchParams().get("path") || "";
 
   const handleCloseDialog = useCallback(
     () => setOpenDialog(false),
@@ -62,8 +66,9 @@ const FileControlPanel = ({
       }
 
       // 성공 시 UI 새로고침
-      toast.success(result.message || "파일이 삭제되었습니다.");
+      queryClient.invalidateQueries({ queryKey: ["content", path] });
       onMoveComplete?.(); // 파일 목록 새로고침
+      toast.success(result.message || "파일이 삭제되었습니다.");
     } catch (error) {
       console.error("파일 삭제 중 오류:", error);
       toast.error(
