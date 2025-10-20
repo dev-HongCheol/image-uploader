@@ -86,12 +86,14 @@ export async function createThumbnail(
       });
 
       return await sharp(Buffer.from(jpegBuffer))
+        .rotate() // EXIF 회전 정보 자동 적용
         .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toBuffer();
     } else if (type === "image") {
       // 일반 이미지 썸네일 생성
       return await sharp(fileBuffer)
+        .rotate() // EXIF 회전 정보 자동 적용
         .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toBuffer();
