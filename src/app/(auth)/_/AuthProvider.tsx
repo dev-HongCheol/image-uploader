@@ -3,7 +3,7 @@
 import ROUTE from "@/constants/routes";
 import { clientSupabase } from "@/utils/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useCallback } from "react";
 
 type Props = {
   children: ReactNode;
@@ -13,11 +13,11 @@ const AuthProvider = ({ children }: Props) => {
   const supabase = clientSupabase();
   const pathname = usePathname();
 
-  const LoginCheck = async () => {
+  const LoginCheck = useCallback(async () => {
     const user = await supabase.auth.getUser();
 
     if (!user || user.error) router.push(ROUTE.auth.login.path);
-  };
+  }, [router, supabase.auth]);
 
   useEffect(() => {
     LoginCheck();

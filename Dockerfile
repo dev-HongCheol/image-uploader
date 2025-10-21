@@ -117,7 +117,7 @@ ENV HOSTNAME="0.0.0.0"
 # standalone 빌드 결과물만 복사
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # 간단한 헬스체크 (curl 이미 설치됨)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
