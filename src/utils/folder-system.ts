@@ -715,10 +715,11 @@ export async function getFolderFiles(
     query = query.eq("file_type", options.fileType);
   }
 
-  // 정렬 적용
-  const sortBy = options.sortBy || "created_at";
-  const sortOrder = options.sortOrder || "desc";
-  query = query.order(sortBy, { ascending: sortOrder === "asc" });
+  // 다단계 정렬 적용: 1차 촬영일, 2차 파일명, 3차 생성일
+  query = query
+    .order("media_created_at", { ascending: false, nullsFirst: false }) // 1차: 촬영일 (최신순, null은 마지막)
+    .order("original_filename", { ascending: true }) // 2차: 파일명 (오름차순)
+    .order("created_at", { ascending: false }); // 3차: 생성일 (최신순)
 
   // 페이지네이션 적용
   const limit = options.limit || DEFAULT_PAGE_SIZE;

@@ -42,7 +42,7 @@ export interface GetContentRequest {
   path?: string;
   limit?: number;
   offset?: number;
-  sortBy?: "created_at" | "name" | "size";
+  sortBy?: "created_at" | "name" | "size"; // 레거시 호환성 유지 (실제로는 다단계 정렬 사용)
   sortOrder?: "asc" | "desc";
   fileType?: "image" | "video" | "document" | "other";
   searchType?: "file" | "folder" | "all";
