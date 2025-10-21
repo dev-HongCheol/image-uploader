@@ -85,18 +85,42 @@ export async function createThumbnail(
         quality: 0.8
       });
 
-      return await sharp(Buffer.from(jpegBuffer))
+      return await sharp(Buffer.from(jpegBuffer), { 
+        failOnError: false,
+        limitInputPixels: false 
+      })
         .rotate() // EXIF 회전 정보 자동 적용
         .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
+        .jpeg({ 
+          quality: 80,
+          progressive: true,
+          mozjpeg: true 
+        })
         .toBuffer();
     } else if (type === "image") {
       // 일반 이미지 썸네일 생성
-      return await sharp(fileBuffer)
-        .rotate() // EXIF 회전 정보 자동 적용
-        .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
+      try {
+        return await sharp(fileBuffer, { 
+          failOnError: false, // 손상된 이미지도 처리 시도
+          limitInputPixels: false // 큰 이미지 제한 해제
+        })
+          .rotate() // EXIF 회전 정보 자동 적용
+          .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ 
+            quality: 80,
+            progressive: true, // Progressive JPEG 사용
+            mozjpeg: true // 더 안정적인 JPEG 인코딩
+          })
+          .toBuffer();
+      } catch (sharpError) {
+        // Sharp 실패 시 PNG로 시도
+        console.warn('JPEG 썸네일 생성 실패, PNG로 재시도:', sharpError);
+        return await sharp(fileBuffer, { failOnError: false })
+          .rotate()
+          .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+          .png({ quality: 80 })
+          .toBuffer();
+      }
     }
 
     return null;
