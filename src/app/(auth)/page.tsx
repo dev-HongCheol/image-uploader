@@ -42,8 +42,6 @@ export default async function MainPage({ searchParams }: Props) {
       getFolders(rootFolder.id, loginUser.data.user.id),
       getFolderFiles(rootFolder.id, loginUser.data.user.id, {
         limit: DEFAULT_PAGE_SIZE,
-        sortBy: "created_at",
-        sortOrder: "desc",
         offset: 0,
       }),
     ]);
@@ -62,8 +60,6 @@ export default async function MainPage({ searchParams }: Props) {
         getFolders(foundFolderId, loginUser.data.user.id),
         getFolderFiles(foundFolderId, loginUser.data.user.id, {
           limit: DEFAULT_PAGE_SIZE,
-          sortBy: "created_at",
-          sortOrder: "desc",
         }),
       ]);
     }

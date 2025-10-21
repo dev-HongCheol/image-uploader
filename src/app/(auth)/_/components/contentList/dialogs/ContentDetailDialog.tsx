@@ -108,13 +108,13 @@ const ContentDetailDialog = ({ open, file, onClose }: Props) => {
     <Dialog open={open} onOpenChange={() => onClose(undefined)}>
       <DialogContent className="sm:max-w-[80%] dark:border-gray-200">
         <DialogHeader className="min-w-0">
-          <DialogTitle className="text-start">
-            <span className="inline-block max-w-[55%] truncate">
+          <DialogTitle className="flex items-center justify-between pe-4 text-start leading-normal">
+            <p className="inline-block max-w-[70%] truncate">
               {file.original_filename}
-            </span>
-            <span className="ps-1.5 text-sm text-gray-700 dark:text-gray-400">
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-400">
               {Math.floor(file.file_size / 1024).toLocaleString()}KB
-            </span>
+            </p>
           </DialogTitle>
           <DialogDescription>
             {isHEICFormat(file.mime_type, file.original_filename) &&

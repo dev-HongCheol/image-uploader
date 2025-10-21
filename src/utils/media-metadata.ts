@@ -3,6 +3,7 @@
  */
 
 import ExifReader from "exifreader";
+import { parseBuffer } from "music-metadata";
 
 /**
  * 이미지 파일에서 EXIF 촬영 일시를 추출
@@ -16,11 +17,7 @@ async function extractImageCreatedDate(file: File): Promise<string | null> {
     const tags = ExifReader.load(arrayBuffer);
 
     // EXIF 날짜 우선순위: DateTimeOriginal > CreateDate > DateTime
-    const dateFields = [
-      "DateTimeOriginal",
-      "CreateDate",
-      "DateTime",
-    ];
+    const dateFields = ["DateTimeOriginal", "CreateDate", "DateTime"];
 
     for (const field of dateFields) {
       const dateTag = tags[field];
@@ -57,36 +54,36 @@ async function extractImageCreatedDate(file: File): Promise<string | null> {
 async function extractVideoCreatedDate(file: File): Promise<string | null> {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const tags = ExifReader.load(arrayBuffer);
+    const buffer = new Uint8Array(arrayBuffer);
 
-    // QuickTime/MP4 메타데이터에서 생성 날짜 추출
+    // music-metadata를 사용해서 동영상 메타데이터 추출
+    const metadata = await parseBuffer(buffer, file.type);
+
+    // 생성일 찾기 (다양한 필드 확인)
     const dateFields = [
-      "CreateDate",
-      "CreationDate",
-      "MediaCreateDate",
-      "TrackCreateDate",
+      metadata.common.date,
+      metadata.common.originaldate,
+      metadata.format.creationTime,
     ];
 
-    for (const field of dateFields) {
-      const dateTag = tags[field];
-      if (dateTag?.description) {
-        const dateStr = dateTag.description;
-
-        // 다양한 형식 처리
-        let isoDate: string;
-
-        // "2024:01:15 14:30:45" 형식
-        if (dateStr.includes(":") && dateStr.includes(" ")) {
-          isoDate = dateStr
-            .replace(/^(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3")
-            .replace(" ", "T");
-        } else {
-          isoDate = dateStr;
+    for (const dateField of dateFields) {
+      if (dateField) {
+        const date = new Date(dateField);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
         }
+      }
+    }
 
-        const parsedDate = new Date(isoDate);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate.toISOString();
+    // QuickTime/Apple 특별 메타데이터 확인
+    if (metadata.native && metadata.native.QuickTime) {
+      const qtMetadata = metadata.native.QuickTime;
+      for (const entry of qtMetadata) {
+        if (entry.id === "IDAT" || entry.id === "CreationDate") {
+          const date = new Date(entry.value as string);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
+          }
         }
       }
     }
@@ -109,14 +106,13 @@ export async function extractMediaCreatedDate(
 ): Promise<string | null> {
   const mimeType = file.type.toLowerCase();
 
+  let mediaDate: string | null = null;
+
   if (mimeType.startsWith("image/")) {
-    return extractImageCreatedDate(file);
+    mediaDate = await extractImageCreatedDate(file);
+  } else if (mimeType.startsWith("video/")) {
+    mediaDate = await extractVideoCreatedDate(file);
   }
 
-  if (mimeType.startsWith("video/")) {
-    return extractVideoCreatedDate(file);
-  }
-
-  // 이미지나 동영상이 아닌 경우 null 반환
-  return null;
+  return mediaDate;
 }
