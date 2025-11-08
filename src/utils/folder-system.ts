@@ -795,7 +795,7 @@ export async function getFolderFiles(
   }
 
   // 모든 파일에 대해 해당하는 signed URL 설정
-  return files.map((file: UploadedFile, index: number) => ({
+  return files.map((file: UploadedFile) => ({
     ...file,
     signedThumbnailUrl: file.thumbnail_path
       ? signedUrlMap.get(file.id) || null
