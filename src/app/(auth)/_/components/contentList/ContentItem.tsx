@@ -105,6 +105,13 @@ const ContentItem = ({
             className={`h-full rounded object-fill`}
           />
         </div>
+      ) : file.mime_type.includes("video") ? (
+        <div
+          onClick={(event) => handleClickContent(event, file)}
+          className="flex h-32 justify-center sm:h-44 md:h-52"
+        >
+          <video src={file.signedThumbnailUrl ?? ""} preload="metadata" />
+        </div>
       ) : (
         <div
           onClick={(event) => handleClickContent(event, file)}

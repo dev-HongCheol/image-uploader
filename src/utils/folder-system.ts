@@ -228,7 +228,9 @@ export async function deleteUserFolder(
       .eq("user_id", userId);
 
     if (deleteFilesError) {
-      throw new Error(`Failed to delete files from database: ${deleteFilesError.message}`);
+      throw new Error(
+        `Failed to delete files from database: ${deleteFilesError.message}`,
+      );
     }
 
     // storage_folders 카운터 업데이트
@@ -242,7 +244,10 @@ export async function deleteUserFolder(
         .single();
 
       if (currentFolder) {
-        const newFileCount = Math.max(0, currentFolder.file_count - update.count);
+        const newFileCount = Math.max(
+          0,
+          currentFolder.file_count - update.count,
+        );
         const newTotalSize = Math.max(
           0,
           currentFolder.total_size - update.totalSize,
@@ -735,44 +740,68 @@ export async function getFolderFiles(
     return [];
   }
 
-  // 썸네일이 있는 파일들만 필터링하여 signed URL 생성
-  const filesWithThumbnails = files.filter(
+  /**
+   * 비디오도 썸네일을 지원하기 위해 가장 간단한 video태그의 preload="metadata"를 설정함.
+   * 썸네일을 생성한 이미지 파일과 동일하게 파일 타입이 비디오 인 경우 원본 경로를 기반으로 접근 URL 생성
+   * signedUrlMap 맵에 해당 컨텐츠의 id를 키로 signedURL추가 후 최종 리턴 객체에 추가
+   */
+  const signedUrlMap = new Map<string, string>();
+
+  // 썸네일이 존재하는 파일만 필터
+  const filesWithThumbnails: UploadedFile[] = files.filter(
     (file: UploadedFile) => file.thumbnail_path,
   );
 
-  if (filesWithThumbnails.length === 0) {
-    // 썸네일이 있는 파일이 없으면 그대로 반환
-    return files.map((file: UploadedFile) => ({
-      ...file,
-      signedThumbnailUrl: null,
-    }));
+  if (filesWithThumbnails.length !== 0) {
+    const thumbnailPaths = filesWithThumbnails.map(
+      (file: UploadedFile) => file.thumbnail_path,
+    );
+
+    const { data: thumbnailSignedURLs } = await supabase.storage
+      .from(BUCKET_NAMES.THUMBNAILS)
+      .createSignedUrls(thumbnailPaths as string[], 600);
+
+    // signed URL을 파일과 매핑하기 위한 Map 생성
+
+    if (thumbnailSignedURLs) {
+      thumbnailSignedURLs.forEach((signedUrl, index) => {
+        if (signedUrl?.signedUrl) {
+          signedUrlMap.set(filesWithThumbnails[index].id, signedUrl.signedUrl);
+        }
+      });
+    }
   }
 
-  // 썸네일 경로만 추출
-  const thumbnailPaths = filesWithThumbnails.map(
-    (file: UploadedFile) => file.thumbnail_path!,
+  // create video signedURL
+  const videoContents: UploadedFile[] = files.filter(
+    (file) => file.file_type === "video",
   );
 
-  const { data: thumbnailSignedURLs } = await supabase.storage
-    .from(BUCKET_NAMES.THUMBNAILS)
-    .createSignedUrls(thumbnailPaths, 600);
+  if (videoContents.length !== 0) {
+    const videoFilePaths = videoContents.map(
+      (videoContent) => videoContent.file_path,
+    );
+    const { data: videoSignedURLs } = await supabase.storage
+      .from(BUCKET_NAMES.ORIGINALS)
+      .createSignedUrls(videoFilePaths, 600);
 
-  // signed URL을 파일과 매핑하기 위한 Map 생성
-  const signedUrlMap = new Map<string, string>();
-  if (thumbnailSignedURLs) {
-    thumbnailSignedURLs.forEach((signedUrl, index) => {
-      if (signedUrl?.signedUrl) {
-        signedUrlMap.set(thumbnailPaths[index], signedUrl.signedUrl);
-      }
-    });
+    if (videoSignedURLs) {
+      videoSignedURLs.forEach((signedUrl, index) => {
+        if (signedUrl?.signedUrl) {
+          signedUrlMap.set(videoContents[index].id, signedUrl.signedUrl);
+        }
+      });
+    }
   }
 
   // 모든 파일에 대해 해당하는 signed URL 설정
-  return files.map((file: UploadedFile) => ({
+  return files.map((file: UploadedFile, index: number) => ({
     ...file,
     signedThumbnailUrl: file.thumbnail_path
-      ? signedUrlMap.get(file.thumbnail_path) || null
-      : null,
+      ? signedUrlMap.get(file.id) || null
+      : file.file_type === "video"
+        ? signedUrlMap.get(file.id) || null
+        : null,
   }));
 }
 
