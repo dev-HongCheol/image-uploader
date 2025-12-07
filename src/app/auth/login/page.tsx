@@ -2,7 +2,7 @@ import GoogleLoginButton from "./_/components/GoogleLoginButton";
 
 async function LoginPage() {
   return (
-    <div className="flex h-[100dvh] w-[100dvw] flex-col items-center justify-center pb-[60%] text-center">
+    <div className="flex h-[100dvh] w-[100dvw] flex-col items-center justify-center text-center">
       <p className="relative inline-block bg-gradient-to-r from-blue-800 to-sky-200 bg-clip-text text-5xl leading-normal font-black tracking-tight text-transparent">
         DevHong
       </p>

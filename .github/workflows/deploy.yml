@@ -1,8 +1,8 @@
 name: Build and Deploy with Multi-stage Docker
 
 on:
-  #push:
-  #branches: ["develop"]
+  push:
+    branches: ["feat-ci-lightweight"]
   pull_request:
     branches: ["master"]
     types:
@@ -26,7 +26,8 @@ jobs:
   docker-build-and-deploy:
     name: Multi-stage Docker Build and Deploy
     runs-on: [self-hosted]
-    environment: SERVER_HOST
+    # Push와 merged PR에서 실행
+    if: github.event_name == 'push' || github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
@@ -40,10 +41,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          # BuildKit 기능 활성화
           driver-opts: |
             image=moby/buildkit:buildx-stable-1
-          # ARM64 플랫폼 설정
+            network=host
           platforms: linux/arm64
 
       - name: Login to GitHub Container Registry
@@ -68,6 +68,20 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Check and build base image if needed
+        run: |
+          BASE_IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}-base:latest"
+          
+          # Base image가 존재하는지 확인
+          if ! docker manifest inspect $BASE_IMAGE >/dev/null 2>&1; then
+            echo "🔨 Base image not found, building..."
+            docker build -f Dockerfile.base -t $BASE_IMAGE .
+            docker push $BASE_IMAGE
+            echo "✅ Base image built and pushed"
+          else
+            echo "✅ Base image already exists, skipping build"
+          fi
+
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -75,6 +89,9 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/arm64
+          # GitHub Actions 캐시 활용
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}
             ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }}
@@ -85,162 +102,83 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-          # 빌드 최적화 옵션 (node_cache 제거)
 
-      - name: Deploy to Orange Pi Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_SSH_HOST }}
-          username: ${{ secrets.SERVER_SSH_USERNAME }}
-          port: 30022
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: GITHUB_SHA,GITHUB_REF_NAME
-          script: |
-            set -e
+      - name: Deploy locally
+        run: |
+          set -e
 
-            CONTAINER_NAME="${{ env.CONTAINER_NAME }}"
-            IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}"
-            BACKUP_IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}:backup"
+          CONTAINER_NAME="${{ env.CONTAINER_NAME }}"
+          IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}"
+          BACKUP_IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}:backup"
 
-            echo "🏷️  Current deployment: $IMAGE"
-            echo "📊 Git SHA: $GITHUB_SHA"
+          # 현재 실행 중인 컨테이너 백업
+          if docker ps -q -f name=$CONTAINER_NAME | grep -q .; then
+            docker commit $CONTAINER_NAME $BACKUP_IMAGE || true
+          fi
 
-            # 현재 실행 중인 컨테이너 백업
-            echo "💾 Creating backup of current container..."
-            if docker ps -q -f name=$CONTAINER_NAME | grep -q .; then
-              docker commit $CONTAINER_NAME $BACKUP_IMAGE || true
-              echo "✅ Backup created: $BACKUP_IMAGE"
-            fi
-
-            # 간단한 헬스체크 함수 (메인 페이지 접근)
-            health_check() {
-              local container=$1
-              local max_attempts=30
-              local attempt=1
-              
-              echo "🏥 Health checking container: $container"
-              while [ $attempt -le $max_attempts ]; do
-                # 단순히 메인 페이지가 200 응답하는지 확인
-                if curl -f -s http://localhost:23333 >/dev/null 2>&1; then
-                  echo "✅ Health check passed on attempt $attempt"
-                  return 0
-                fi
-                echo "⏳ Health check attempt $attempt/$max_attempts failed, waiting..."
-                sleep 10
-                attempt=$((attempt + 1))
-              done
-              
-              echo "❌ Health check failed after $max_attempts attempts"
-              return 1
-            }
-
-            # 롤백 함수
-            rollback() {
-              echo "🔄 Rolling back to previous version..."
-              docker stop $CONTAINER_NAME || true
-              docker rm $CONTAINER_NAME || true
-              
-              if docker images -q $BACKUP_IMAGE | grep -q .; then
-                docker run -d -p ${{ env.CONTAINER_PORT }} --name $CONTAINER_NAME \
-                  --restart unless-stopped \
-                  --log-driver json-file \
-                  --log-opt max-size=10m \
-                  --log-opt max-file=3 \
-                  $BACKUP_IMAGE
-                echo "✅ Rollback completed"
-              else
-                echo "❌ No backup image found for rollback"
-                exit 1
+          # 헬스체크 함수
+          health_check() {
+            local max_attempts=30
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              if curl -f -s http://localhost:23333 >/dev/null 2>&1; then
+                return 0
               fi
-            }
+              sleep 10
+              attempt=$((attempt + 1))
+            done
+            return 1
+          }
 
-            echo "🔄 Stopping existing container..."
+          # 롤백 함수
+          rollback() {
             docker stop $CONTAINER_NAME || true
             docker rm $CONTAINER_NAME || true
-
-            echo "📦 Pulling latest image..."
-            if ! docker pull $IMAGE; then
-              echo "❌ Failed to pull image"
-              rollback
+            
+            if docker images -q $BACKUP_IMAGE | grep -q .; then
+              docker run -d -p ${{ env.CONTAINER_PORT }} --name $CONTAINER_NAME \
+                --restart unless-stopped \
+                --log-driver json-file \
+                --log-opt max-size=10m \
+                --log-opt max-file=3 \
+                $BACKUP_IMAGE
+            else
               exit 1
             fi
+          }
 
-            echo "🚀 Starting new container..."
-            if ! docker run -d -p ${{ env.CONTAINER_PORT }} --name $CONTAINER_NAME \
-              --restart unless-stopped \
-              --log-driver json-file \
-              --log-opt max-size=10m \
-              --log-opt max-file=3 \
-              --memory=1g \
-              --cpus=1.5 \
-              $IMAGE; then
-              echo "❌ Failed to start container"
-              rollback
-              exit 1
-            fi
+          # 컨테이너 배포
+          docker stop $CONTAINER_NAME || true
+          docker rm $CONTAINER_NAME || true
 
-            # 헬스체크 실행
-            if ! health_check $CONTAINER_NAME; then
-              echo "❌ Health check failed, rolling back..."
-              rollback
-              exit 1
-            fi
+          if ! docker pull $IMAGE; then
+            rollback
+            exit 1
+          fi
 
-            echo "🧹 Cleaning up old images and containers..."
-            # 사용하지 않는 이미지 정리 (백업 이미지 제외)
-            docker image prune -f --filter "until=24h"
+          if ! docker run -d -p ${{ env.CONTAINER_PORT }} --name $CONTAINER_NAME \
+            --restart unless-stopped \
+            --log-driver json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            --memory=1g \
+            --cpus=1.5 \
+            $IMAGE; then
+            rollback
+            exit 1
+          fi
 
-            # 중지된 컨테이너 정리
-            docker container prune -f
+          # 헬스체크
+          if ! health_check; then
+            rollback
+            exit 1
+          fi
 
-            # 사용하지 않는 볼륨 정리
-            docker volume prune -f
+          # 정리
+          docker image prune -f --filter "until=24h"
+          docker container prune -f
+          docker volume prune -f
+          docker builder prune -f --filter "until=48h"
 
-            # 빌드 캐시 정리 (용량 절약)
-            docker builder prune -f --filter "until=48h"
 
-            echo "📊 Deployment Statistics:"
-            echo "Container Status: $(docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep $CONTAINER_NAME)"
-            echo "Image Size: $(docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}' | grep ${{ steps.repo.outputs.repository }})"
-            echo "Disk Usage: $(df -h / | tail -1 | awk '{print $4" available of "$2}')"
-            echo "Memory Usage: $(free -h | grep Mem | awk '{print $3"/"$2}')"
-
-            echo "✅ Deployment completed successfully!"
-            echo "🌐 Application is running at: http://$(hostname -I | awk '{print $1}'):23333"
-
-      - name: Post-deployment cleanup and monitoring
-        if: always()
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_SSH_HOST }}
-          username: ${{ secrets.SERVER_SSH_USERNAME }}
-          port: 30022
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            # 시스템 리소스 모니터링
-            echo "📈 System Resources After Deployment:"
-            echo "CPU Usage: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1)%"
-            echo "Memory Usage: $(free | grep Mem | awk '{printf "%.1f%%", $3/$2 * 100.0}')"
-            echo "Disk Usage: $(df -h / | awk 'NR==2{printf "%s", $5}')"
-
-            # Docker 리소스 사용량
-            echo "🐳 Docker Resources:"
-            docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
-
-            # 로그 확인 (마지막 10줄)
-            echo "📋 Recent application logs:"
-            docker logs --tail 10 ${{ env.CONTAINER_NAME }} || true
-
-  # 실패 시 알림 (선택사항)
-  # notify-failure:
-  #   name: Notify Deployment Failure
-  #   runs-on: [self-hosted]
-  #   needs: docker-build-and-deploy
-  #   if: failure()
-  #   steps:
-  #     - name: Send failure notification
-  #       run: |
-  #         echo "❌ Deployment failed for commit ${{ github.sha }}"
-  #         echo "Branch: ${{ github.ref_name }}"
-  #         echo "Repository: ${{ github.repository }}"
-  #         # 여기에 Slack, Discord 등 알림 로직 추가 가능

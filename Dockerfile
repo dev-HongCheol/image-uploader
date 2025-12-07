@@ -1,30 +1,8 @@
 # syntax=docker/dockerfile:1.4
 # ============================================================================
-# Dependencies Stage - Node.js 22 Alpine 직접 사용
+# Dependencies Stage - Pre-built Base Image 사용
 # ============================================================================
-FROM node:22-alpine AS deps
-
-# 네이티브 의존성 설치
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    libc6-compat \
-    vips-dev \
-    curl \
-    tzdata \
-    && rm -rf /var/cache/apk/*
-
-# pnpm 설치
-RUN corepack enable && corepack prepare pnpm@8 --activate
-
-# 시간대 설정
-RUN ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
-    echo "Asia/Seoul" > /etc/timezone
-
-# 사용자 생성
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+FROM ghcr.io/dev-hongcheol/image-uploader-base:latest AS deps
 
 WORKDIR /app
 
@@ -39,31 +17,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     pnpm install --force --prefer-offline
 
 # ============================================================================
-# Builder Stage - 빌드만 담당
+# Builder Stage - Pre-built Base Image 사용
 # ============================================================================
-FROM node:22-alpine AS builder
-
-# 네이티브 의존성 설치
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    libc6-compat \
-    vips-dev \
-    curl \
-    tzdata \
-    && rm -rf /var/cache/apk/*
-
-# pnpm 설치
-RUN corepack enable && corepack prepare pnpm@8 --activate
-
-# 시간대 설정
-RUN ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
-    echo "Asia/Seoul" > /etc/timezone
-
-# 사용자 생성
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+FROM ghcr.io/dev-hongcheol/image-uploader-base:latest AS builder
 
 WORKDIR /app
 
@@ -87,15 +43,13 @@ RUN --mount=type=cache,target=/app/.next/cache,sharing=locked \
     pnpm build
 
 # ============================================================================
-# Runner Stage - 최종 실행 이미지
+# Runner Stage - 경량 Runtime Image
 # ============================================================================
 FROM node:22-alpine AS runner
 
-# 네이티브 의존성 설치 (최소한만)
-RUN apk add --no-cache \
-    curl \
-    tzdata \
-    && rm -rf /var/cache/apk/*
+# 최소 의존성만 설치
+RUN apk add --no-cache curl tzdata && \
+    rm -rf /var/cache/apk/*
 
 # 시간대 설정
 RUN ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
