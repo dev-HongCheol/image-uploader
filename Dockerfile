@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     --mount=type=cache,target=/app/.pnpm,sharing=locked \
     pnpm config set network-timeout 300000 && \
     pnpm config set fetch-retries 5 && \
-    pnpm install --force --prefer-offline --include-dev
+    pnpm install --force --prefer-offline
 
 # ============================================================================
 # Builder Stage - Pre-built Base Image 사용
