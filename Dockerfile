@@ -14,6 +14,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     --mount=type=cache,target=/app/.pnpm,sharing=locked \
     pnpm config set network-timeout 300000 && \
     pnpm config set fetch-retries 5 && \
+    pnpm config set shamefully-hoist true && \
     pnpm install --force --prefer-offline
 
 # ============================================================================
@@ -26,6 +27,9 @@ WORKDIR /app
 # 의존성 복사 (이미 설치됨)
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# 디버그: 파일 구조 확인
+RUN ls -la src/ && ls -la src/constants/ && ls -la src/utils/ && ls -la tsconfig.json
 
 # 빌드타임 환경변수
 ARG NEXT_PUBLIC_SUPABASE_URL
