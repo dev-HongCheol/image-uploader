@@ -79,26 +79,23 @@ jobs:
             echo "✅ Local base image already exists"
           fi
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          platforms: linux/arm64
-          # GitHub Actions 캐시 활용
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }}
-            ghcr.io/${{ steps.repo.outputs.repository }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            NODE_VERSION=${{ env.NODE_VERSION }}
-            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+      - name: Build Docker image locally
+        run: |
+          # 로컬에서 직접 빌드
+          docker build \
+            --build-arg NODE_VERSION=${{ env.NODE_VERSION }} \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ vars.NEXT_PUBLIC_SUPABASE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}" \
+            -t ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }} \
+            -t ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }} \
+            -t ghcr.io/${{ steps.repo.outputs.repository }}:latest \
+            .
+          
+          # GitHub Container Registry에 푸시
+          docker push ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}
+          docker push ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.ref_name }}-${{ github.sha }}
+          docker push ghcr.io/${{ steps.repo.outputs.repository }}:latest
 
       - name: Deploy locally
         run: |
