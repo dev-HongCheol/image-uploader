@@ -43,7 +43,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Next.js 빌드 캐시 활용
-RUN pnpm build
+RUN --mount=type=cache,target=/app/.next/cache,sharing=locked \
+    pnpm build
 
 # ============================================================================
 # Runner Stage - 경량 Runtime Image
