@@ -2,7 +2,7 @@
 # ============================================================================
 # Dependencies Stage - Pre-built Base Image 사용
 # ============================================================================
-FROM ghcr.io/dev-hongcheol/image-uploader-base:latest AS deps
+FROM image-uploader-base:latest AS deps
 
 WORKDIR /app
 
@@ -14,12 +14,12 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     --mount=type=cache,target=/app/.pnpm,sharing=locked \
     pnpm config set network-timeout 300000 && \
     pnpm config set fetch-retries 5 && \
-    pnpm install --force --prefer-offline
+    pnpm install --force --prefer-offline --include-dev
 
 # ============================================================================
 # Builder Stage - Pre-built Base Image 사용
 # ============================================================================
-FROM ghcr.io/dev-hongcheol/image-uploader-base:latest AS builder
+FROM image-uploader-base:latest AS builder
 
 WORKDIR /app
 

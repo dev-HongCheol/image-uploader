@@ -68,18 +68,15 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Check and build base image if needed
+      - name: Build local base image
         run: |
-          BASE_IMAGE="ghcr.io/${{ steps.repo.outputs.repository }}-base:latest"
-          
-          # Base image가 존재하는지 확인
-          if ! docker manifest inspect $BASE_IMAGE >/dev/null 2>&1; then
-            echo "🔨 Base image not found, building..."
-            docker build -f Dockerfile.base -t $BASE_IMAGE .
-            docker push $BASE_IMAGE
-            echo "✅ Base image built and pushed"
+          # 로컬 베이스 이미지 빌드
+          if ! docker images image-uploader-base:latest --format "{{.ID}}" | grep -q .; then
+            echo "🔨 Building local base image..."
+            docker build -f Dockerfile.base -t image-uploader-base:latest .
+            echo "✅ Local base image built"
           else
-            echo "✅ Base image already exists, skipping build"
+            echo "✅ Local base image already exists"
           fi
 
       - name: Build Docker image

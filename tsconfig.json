@@ -29,17 +29,10 @@
     }
   },
   "include": [
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "../../../G:/dev/.next/types/**/*.ts",
-    "../../G:/dev/.next/types/**/*.ts",
-    ".next/types/**/*.ts",
-    "G:/dev/.next/types/**/*.ts",
-    "G:\\dev\\.next/types/**/*.ts",
-    "g://dev/.next/types/**/*.ts",
-    "g:/dev/.next/types/**/*.ts",
-    "next-env.d.ts",
-    "F:\\NextRAMDisk\\.next/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
