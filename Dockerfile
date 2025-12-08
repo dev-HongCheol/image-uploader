@@ -31,11 +31,12 @@ WORKDIR /app
 # 의존성 파일만 복사 (변경 시에만 재설치)
 COPY package.json pnpm-lock.yaml ./
 
-# BuildKit 마운트 캐시로 pnpm store 재사용
+# sharp 빌드에 필요한 node-addon-api 임시 설치
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     --mount=type=cache,target=/app/.pnpm,sharing=locked \
     pnpm config set network-timeout 300000 && \
     pnpm config set fetch-retries 5 && \
+    pnpm add node-addon-api node-gyp && \
     pnpm install --force --prefer-offline
 
 # ============================================================================
