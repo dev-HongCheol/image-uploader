@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import AuthProvider from "./_/AuthProvider";
 import { ModeSelectDropdown } from "./_/components/header/ModeSelectDropdown";
 import PathBreadcrumb from "./_/components/header/PathBreadcrumb";
@@ -13,7 +13,9 @@ const layout = async ({ children }: Props) => {
     <AuthProvider>
       <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-gray-400 px-4">
         <div>
-          <PathBreadcrumb />
+          <Suspense>
+            <PathBreadcrumb />
+          </Suspense>
         </div>
         <div className="ms-auto" />
 
@@ -23,7 +25,7 @@ const layout = async ({ children }: Props) => {
         />
         <ModeSelectDropdown />
       </header>
-      {children}
+      <Suspense>{children}</Suspense>
     </AuthProvider>
   );
 };
