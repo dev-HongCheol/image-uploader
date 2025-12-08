@@ -27,6 +27,7 @@ jobs:
     name: Multi-stage Docker Build and Deploy
     runs-on: [self-hosted]
     environment: SERVER_HOST
+    if: github.event.pull_request.merged == true
     permissions:
       contents: read
       packages: write
