@@ -73,7 +73,7 @@ const parsePath = (pathString: string): PathInfo[] => {
 
 /**
  * 경로 기반 breadcrumb 네비게이션 컴포넌트
- * URL의 path 쿼리 파라미터를 기반으로 breadcrumb을 생성합니다.
+ * URL의 path 쿼리 파라미터를 기반으로 breadcrumb을 생성.
  */
 const PathBreadcrumb = () => {
   const searchParams = useSearchParams();
