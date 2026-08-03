@@ -88,15 +88,9 @@ jobs:
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
           # 빌드 최적화 옵션 (node_cache 제거)
 
-      - name: Deploy to Orange Pi Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_SSH_HOST }}
-          username: ${{ secrets.SERVER_SSH_USERNAME }}
-          port: ${{ secrets.SERVER_SSH_PORT }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: GITHUB_SHA,GITHUB_REF_NAME
-          script: |
+      # 러너가 배포 서버 호스트에서 직접 실행되므로 SSH 없이 로컬 실행
+      - name: Deploy container
+        run: |
             set -e
 
             CONTAINER_NAME="${{ env.CONTAINER_NAME }}"
@@ -211,13 +205,7 @@ jobs:
 
       - name: Post-deployment cleanup and monitoring
         if: always()
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_SSH_HOST }}
-          username: ${{ secrets.SERVER_SSH_USERNAME }}
-          port: ${{ secrets.SERVER_SSH_PORT }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
+        run: |
             # 시스템 리소스 모니터링
             echo "📈 System Resources After Deployment:"
             echo "CPU Usage: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1)%"
